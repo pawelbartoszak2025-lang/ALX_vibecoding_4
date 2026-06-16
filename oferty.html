@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oferty mieszkań — Otodom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#f1ede2; --paper-2:#e9e2d2; --paper-3:#e3dccc;
+    --ink:#221d16; --ink-soft:#7c7263; --ink-faint:#a79c89;
+    --line:#ddd5c4; --line-strong:#cabda3;
+    --clay:#b8462b; --clay-deep:#8c3219; --clay-tint:#f4e3da;
+    --olive:#5d6a38; --olive-tint:#ebeede;
+    --gold:#9c7415; --gold-tint:#f3e9cd;
+    --pad:clamp(20px,5vw,72px);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Hanken Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    position:relative; overflow-x:hidden;
+  }
+  /* grain + soft light */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode:multiply;
+  }
+  body::after{
+    content:""; position:fixed; top:-20vh; right:-10vw; width:60vw; height:60vw;
+    pointer-events:none; z-index:0; border-radius:50%;
+    background:radial-gradient(circle, rgba(184,70,43,.10), transparent 60%);
+  }
+  header, .filters .wrap, main, footer { position:relative; z-index:2; }
+
+  /* ── header ── */
+  header{ padding:clamp(40px,6vw,72px) var(--pad) clamp(20px,3vw,32px); border-bottom:1.5px solid var(--ink); }
+  .eyebrow{
+    font-family:"JetBrains Mono", monospace; font-size:11.5px; letter-spacing:.26em;
+    text-transform:uppercase; color:var(--clay); margin-bottom:clamp(12px,1.6vw,18px);
+  }
+  h1{
+    font-family:"Fraunces", serif; font-weight:600; margin:0;
+    font-size:clamp(40px,6.5vw,80px); line-height:1; letter-spacing:-.02em;
+  }
+  h1 em{ font-style:italic; font-weight:400; color:var(--clay); }
+  .sub{
+    margin:clamp(12px,1.6vw,18px) 0 0; color:var(--ink-soft); font-size:14.5px; letter-spacing:.01em;
+  }
+  .sub b{ color:var(--ink); font-weight:600; }
+  code{
+    font-family:"JetBrains Mono", monospace; font-size:.88em; color:var(--clay-deep);
+    background:var(--clay-tint); padding:2px 7px; border-radius:3px;
+  }
+
+  /* ── filters ── */
+  .filters{
+    position:sticky; top:0; z-index:20;
+    background:rgba(241,237,226,.88); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line-strong);
+  }
+  .filters .wrap{
+    padding:14px var(--pad); display:flex; gap:10px clamp(28px,4vw,56px); flex-wrap:wrap; align-items:center;
+  }
+  .fgroup{ display:flex; align-items:center; gap:clamp(10px,1.4vw,16px); flex-wrap:wrap; cursor:pointer; }
+  .flabel{
+    font-family:"JetBrains Mono", monospace; font-size:10px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--ink-faint);
+  }
+  .fdiv{ width:1px; align-self:stretch; background:var(--line-strong); margin:2px 0; }
+  /* custom select: ramka + strzałka w stylu paper */
+  .select{ position:relative; display:inline-flex; }
+  .select::after{
+    content:""; position:absolute; right:12px; top:50%; width:7px; height:7px;
+    border-right:1.6px solid var(--clay); border-bottom:1.6px solid var(--clay);
+    transform:translateY(-65%) rotate(45deg); pointer-events:none;
+  }
+  .select select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    font-family:"Hanken Grotesk", sans-serif; font-size:15px; font-weight:500;
+    color:var(--ink); background:var(--paper); cursor:pointer;
+    border:1px solid var(--line-strong); border-radius:3px;
+    padding:8px 34px 8px 13px; min-width:170px; transition:border-color .2s, background .2s;
+  }
+  .select select:hover{ border-color:var(--clay); }
+  .select select:focus{ outline:none; border-color:var(--clay); background:var(--paper-2); }
+  .btn-scrape{
+    font-family:"Hanken Grotesk", sans-serif; font-size:14.5px; font-weight:600;
+    color:#fff; background:var(--clay); border:1px solid var(--clay-deep); border-radius:3px;
+    padding:9px 18px; cursor:pointer; white-space:nowrap;
+    transition:background .2s, transform .1s, opacity .2s;
+  }
+  .btn-scrape:hover{ background:var(--clay-deep); }
+  .btn-scrape:active{ transform:translateY(1px); }
+  .btn-scrape:disabled{ opacity:.55; cursor:progress; }
+  .btn-discord{
+    font-family:"Hanken Grotesk", sans-serif; font-size:14.5px; font-weight:600;
+    color:#fff; background:#5865F2; border:1px solid #4752c4; border-radius:3px;
+    padding:9px 18px; cursor:pointer; white-space:nowrap;
+    transition:background .2s, transform .1s, opacity .2s;
+  }
+  .btn-discord:hover{ background:#4752c4; }
+  .btn-discord:active{ transform:translateY(1px); }
+  .btn-discord:disabled{ opacity:.55; cursor:progress; }
+  .scrape-status{
+    font-family:"JetBrains Mono", monospace; font-size:11.5px; letter-spacing:.04em;
+    color:var(--ink-soft); min-height:1em;
+  }
+  .scrape-status.err{ color:var(--clay-deep); }
+  .scrape-status.ok{ color:var(--olive); }
+
+  /* ── list ── */
+  main{ padding:0 0 clamp(50px,8vw,90px); }
+  .row{
+    display:grid; align-items:center; gap:clamp(18px,2.5vw,36px);
+    grid-template-columns:56px minmax(0,1fr) auto 220px 26px;
+    grid-template-areas:"idx body specs price arrow";
+    padding:clamp(22px,2.8vw,32px) var(--pad);
+    text-decoration:none; color:inherit; position:relative;
+    border-bottom:1px solid var(--line); isolation:isolate;
+    transition:background .35s ease;
+    animation:rise .6s cubic-bezier(.2,.7,.2,1) backwards;
+    animation-delay:calc(var(--i) * 42ms);
+  }
+  .row::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:0; background:var(--clay);
+    transition:width .3s cubic-bezier(.2,.7,.2,1); z-index:-1;
+  }
+  .row:hover{ background:var(--paper-2); }
+  .row:hover::before{ width:4px; }
+
+  .row-index{
+    grid-area:idx; font-family:"Fraunces", serif; font-size:20px; font-weight:500;
+    color:var(--ink-faint); font-variant-numeric:tabular-nums; transition:color .3s;
+  }
+  .row:hover .row-index{ color:var(--clay); }
+
+  .row-body{ grid-area:body; min-width:0; }
+  .row-tags{ display:flex; gap:7px; margin-bottom:11px; flex-wrap:wrap; }
+  .tag{
+    font-family:"JetBrains Mono", monospace; font-size:10px; letter-spacing:.12em;
+    text-transform:uppercase; padding:3px 9px; border-radius:2px;
+    border:1px solid var(--line-strong); color:var(--ink-soft); white-space:nowrap;
+  }
+  .tag-city{ color:var(--clay-deep); border-color:#dba88f; background:var(--clay-tint); }
+  .tag-priv{ color:var(--olive); border-color:#bcc497; background:var(--olive-tint); }
+  .tag-inv { color:var(--gold);  border-color:#dcc787; background:var(--gold-tint); }
+  .row-title{
+    font-family:"Fraunces", serif; font-weight:500; margin:0;
+    font-size:clamp(18px,1.7vw,24px); line-height:1.18; letter-spacing:-.01em;
+  }
+  .row-loc{
+    margin-top:8px; font-size:13px; color:var(--ink-soft);
+    display:flex; align-items:center; gap:6px;
+  }
+  .pin{ color:var(--clay); flex:none; }
+
+  .row-specs{ grid-area:specs; display:flex; gap:clamp(18px,2vw,30px); }
+  .spec{ display:flex; align-items:baseline; gap:5px; white-space:nowrap; }
+  .spec-val{ font-family:"JetBrains Mono", monospace; font-size:17px; font-weight:500; font-variant-numeric:tabular-nums; }
+  .spec-lab{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); }
+
+  .row-price{ grid-area:price; text-align:right; }
+  .price-main{
+    font-family:"Fraunces", serif; font-weight:600; font-size:clamp(22px,2vw,27px); line-height:1;
+    font-variant-numeric:tabular-nums; display:flex; align-items:baseline; justify-content:flex-end; gap:5px;
+  }
+  .price-cur{ font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:500; letter-spacing:.06em; color:var(--ink-soft); }
+  .price-ppm{ font-family:"JetBrains Mono", monospace; font-size:12px; color:var(--ink-soft); margin-top:7px; }
+  .price-inv{ color:var(--clay); font-style:italic; font-weight:500; }
+
+  .row-arrow{
+    grid-area:arrow; justify-self:end; font-family:"Fraunces", serif; font-size:22px;
+    color:var(--ink-faint); transition:transform .3s cubic-bezier(.2,.7,.2,1), color .3s;
+  }
+  .row:hover .row-arrow{ transform:translateX(6px); color:var(--clay); }
+
+  .empty{
+    padding:clamp(60px,10vw,120px) var(--pad); text-align:center;
+    font-family:"Fraunces", serif; font-style:italic; font-size:24px; color:var(--ink-soft);
+  }
+
+  /* ── footer ── */
+  footer{
+    padding:clamp(26px,4vw,44px) var(--pad); border-top:1.5px solid var(--ink);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    font-family:"JetBrains Mono", monospace; font-size:11.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--ink-soft);
+  }
+
+  @keyframes rise{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:none; } }
+
+  /* ── responsive ── */
+  @media (max-width:860px){
+    .row{
+      grid-template-columns:1fr auto;
+      grid-template-areas:"idx arrow" "body body" "specs price";
+      gap:14px 18px; align-items:end;
+    }
+    .row-price{ text-align:left; }
+    .price-main{ justify-content:flex-start; }
+    .row-index{ font-size:15px; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .row{ animation:none; }
+    *{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Indeks nieruchomości · 2026</div>
+  <h1>Oferty <em>mieszkań</em></h1>
+  <p class="sub"><b id="shown">40</b> ofert · dane lokalne z <code>otodom.db</code> · Gdańsk / Kraków / Warszawa / Poznań</p>
+</header>
+<nav class="filters"><div class="wrap">
+  <label class="fgroup"><span class="flabel">Województwo</span>
+    <span class="select"><select id="selWoj"></select></span></label>
+  <div class="fdiv"></div>
+  <label class="fgroup"><span class="flabel">Miasto</span>
+    <span class="select"><select id="selCity"></select></span></label>
+  <div class="fdiv"></div>
+  <button id="btnScrape" class="btn-scrape" type="button">Pobierz 10 najnowszych ofert</button>
+  <button id="btnDiscord" class="btn-discord" type="button">Wyślij na Discord</button>
+  <span id="scrapeStatus" class="scrape-status" role="status"></span>
+</div></nav>
+<main id="grid"></main>
+<footer>
+  <span>Wygenerowano lokalnie · Otodom</span>
+  <span>Kliknij ofertę, aby otworzyć ogłoszenie →</span>
+</footer>
+
+<script>
+const OFERTY = [{"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "kawalerka 3min do 100czni | 2km do GUMed i PG", "price": 295000.0, "currency": "PLN", "ppm": 11346.0, "area": 26.0, "rooms": "1", "private": false, "location": "Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/kawalerka-3min-do-100czni-2km-do-gumed-i-pg-ID4AmxR"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "2km do Starówki/Obok tramwaj", "price": 379500.0, "currency": "PLN", "ppm": 11859.0, "area": 32.0, "rooms": "2", "private": false, "location": "Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/2km-do-starowki-obok-tramwaj-ID4zpQL"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "Dla studentów/Inwestycyjny Lokal/Tramwaj/Obok PG", "price": 560108.0, "currency": "PLN", "ppm": 10540.0, "area": 53.14, "rooms": "3", "private": false, "location": "Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/dla-studentow-inwestycyjny-lokal-tramwaj-obok-pg-ID4AH1V"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "1-pokojowy apartament inwestycyjny 32m2 + balkon", "price": 599043.0, "currency": "PLN", "ppm": 18575.0, "area": 32.25, "rooms": "1", "private": false, "location": "Twarda, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/1-pokojowy-apartament-inwestycyjny-32m2-balkon-ID4uEWX"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "4 pokojowe mieszkanie na Morenie.", "price": 750000.0, "currency": "PLN", "ppm": 10135.0, "area": 74.0, "rooms": "4", "private": false, "location": "Warneńska, Pruszcz Gdański, pomorskie", "url": "https://www.otodom.pl/pl/oferta/4-pokojowe-mieszkanie-na-morenie-ID4BMBs"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "Wakacyjny apartament nad morzem", "price": 1362840.0, "currency": "PLN", "ppm": 22452.0, "area": 60.7, "rooms": "2", "private": false, "location": "Turystyczna, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/wakacyjny-apartament-nad-morzem-ID4BMAU"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "Wakacyjny 2 poziomowy apartament nad morzem", "price": 1367145.0, "currency": "PLN", "ppm": 19860.0, "area": 68.84, "rooms": "2", "private": false, "location": "Turystyczna, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/wakacyjny-2-poziomowy-apartament-nad-morzem-ID4BMAT"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "Wakacyjny apartament nad morzem", "price": 1380060.0, "currency": "PLN", "ppm": 19920.0, "area": 69.28, "rooms": "2", "private": false, "location": "Turystyczna, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/wakacyjny-apartament-nad-morzem-ID4BMAV"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "2-pokojowe mieszkanie 35m2 + balkon Bez Prowizji", "price": null, "currency": "PLN", "ppm": null, "area": 35.57, "rooms": "2", "private": false, "location": "ul. Kazimierza Wielkiego, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-35m2-balkon-bez-prowizji-ID4A4iK"}, {"miasto": "Gdańsk", "wojewodztwo": "pomorskie", "title": "Nowa Wałowa", "price": null, "currency": "PLN", "ppm": null, "area": null, "rooms": null, "private": false, "location": "ul. Stępkarska, Gdańsk, pomorskie", "url": "https://www.otodom.pl/pl/oferta/nowa-walowa-ID4vOrw"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Kawalerka |osobna kuchnia |balkon |8. piętro |Avia", "price": 599000.0, "currency": "PLN", "ppm": 18108.0, "area": 33.08, "rooms": "1", "private": false, "location": "Osiedle Avia, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/kawalerka-osobna-kuchnia-balkon-8-pietro-avia-ID4BlGa"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "1-pokojowe mieszkanie 34m2 Bezpośrednio", "price": 613372.0, "currency": "PLN", "ppm": 17550.0, "area": 34.95, "rooms": "1", "private": false, "location": "ul. Agatowa, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/1-pokojowe-mieszkanie-34m2-bezposrednio-ID4zgd3"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Nowe 3 pokojowe mieszkanie z ogródkiem", "price": 779000.0, "currency": "PLN", "ppm": 11280.0, "area": 69.06, "rooms": "3", "private": false, "location": "Leona Petrażyckiego, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/nowe-3-pokojowe-mieszkanie-z-ogrodkiem-ID4zPE4"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Nowoczesne 2 pokoje z balkonem - ul. Dąbska", "price": 820000.0, "currency": "PLN", "ppm": 19519.0, "area": 42.01, "rooms": "2", "private": false, "location": "Dąbska, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/nowoczesne-2-pokoje-z-balkonem-ul-dabska-ID4zUuy"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Na sprzedaż mieszkanie 81m2, Fabryka Czekolady", "price": 1590000.0, "currency": "PLN", "ppm": 19589.0, "area": 81.17, "rooms": "3", "private": false, "location": "Władysława Łokietka, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/na-sprzedaz-mieszkanie-81m2-fabryka-czekolady-ID4BHrQ"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Kamienica inwestycyjna | Stare Podgórze", "price": 2800000.0, "currency": "PLN", "ppm": 10959.0, "area": 255.49, "rooms": "7", "private": false, "location": "Przedwiośnie, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/kamienica-inwestycyjna-stare-podgorze-ID4AlcJ"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "Najnowsza inwestycja | Dwa poziomy | Widok na las", "price": 3299250.0, "currency": "PLN", "ppm": 24900.0, "area": 132.5, "rooms": "6", "private": false, "location": "Królowej Jadwigi, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/najnowsza-inwestycja-dwa-poziomy-widok-na-las-ID4B36i"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "2-pokojowe mieszkanie 30m2 + balkon Bezpośrednio", "price": null, "currency": "PLN", "ppm": null, "area": 30.59, "rooms": "2", "private": false, "location": "ul. Myśliwska, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-30m2-balkon-bezposrednio-ID4uUny"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "4-pokojowe mieszkanie 75m2 + balkon Bez Prowizji", "price": null, "currency": "PLN", "ppm": null, "area": 75.1, "rooms": "4", "private": false, "location": "ul. Braci Czeczów, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/4-pokojowe-mieszkanie-75m2-balkon-bez-prowizji-ID4un87"}, {"miasto": "Kraków", "wojewodztwo": "małopolskie", "title": "1-pokojowe mieszkanie 33m2 + balkon Bezpośrednio", "price": null, "currency": "PLN", "ppm": null, "area": 33.95, "rooms": "1", "private": false, "location": "ul. Osiedle, Kraków, małopolskie", "url": "https://www.otodom.pl/pl/oferta/1-pokojowe-mieszkanie-33m2-balkon-bezposrednio-ID4uH3N"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Gotowa inwestycja-dwie kawalerki w kamienicy Poznań Grunwald Hetmańska", "price": 480000.0, "currency": "PLN", "ppm": 15000.0, "area": 32.0, "rooms": "2", "private": false, "location": "ul. Hetmańska, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/gotowa-inwestycja-dwie-kawalerki-w-kamienicy-poznan-grunwald-hetmanska-ID4yNV6"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Godne Polecenia ,48 m2 , blok 2016 r", "price": 579000.0, "currency": "PLN", "ppm": 12063.0, "area": 48.0, "rooms": "2", "private": false, "location": "ul. Jasielska, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/godne-polecenia-48-m2-blok-2016-r-ID4BGko"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "2-pokojowe mieszkanie 41m2 + balkon Bez Prowizji", "price": 626813.0, "currency": "PLN", "ppm": 15225.0, "area": 41.17, "rooms": "2", "private": false, "location": "ul. Ziarnista, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-41m2-balkon-bez-prowizji-ID4vYfl"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "75m² | 3pokoje | Stare Miasto | do własnej aranżacji", "price": 669000.0, "currency": "PLN", "ppm": 8906.0, "area": 75.12, "rooms": "3", "private": true, "location": "ul. Działyńskich, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/75m-3pokoje-stare-miasto-do-wlasnej-aranzacji-ID4zKO3"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "82,47m² | 3 pokoje | ul.Działyńskich 7 | kamienica po rewitalizacji", "price": 689000.0, "currency": "PLN", "ppm": 8355.0, "area": 82.47, "rooms": "3", "private": true, "location": "ul. Działyńskich, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/82-47m-3-pokoje-ul-dzialynskich-7-kamienica-po-rewitalizacji-ID4zKNK"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Wyjątkowy 2-pokojowy apartament z tarasem 90 m2", "price": 715000.0, "currency": "PLN", "ppm": 13970.0, "area": 51.18, "rooms": "2", "private": false, "location": "Wagrowska, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/wyjatkowy-2-pokojowy-apartament-z-tarasem-90-m2-ID4BJcA"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "WYJĄTKOWE MIESZKANIE 3-POKOJOWE PO REMONCIE – POZNAŃ, RATATAJE", "price": 720000.0, "currency": "PLN", "ppm": 12308.0, "area": 58.5, "rooms": "3", "private": false, "location": "os. Powstań Narodowych, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/wyjatkowe-mieszkanie-3-pokojowe-po-remoncie-poznan-ratataje-ID4BgxR"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Nowoczesne mieszkanie gotowe do zamieszkania-", "price": 895000.0, "currency": "PLN", "ppm": 13695.0, "area": 65.35, "rooms": "3", "private": false, "location": "ul. Kazimierza Jarochowskiego, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/nowoczesne-mieszkanie-gotowe-do-zamieszkania-ID4z8By"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Szyperska 12 - apartamenty inwestycyjne", "price": null, "currency": "PLN", "ppm": null, "area": null, "rooms": null, "private": false, "location": "Szyperska 12, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/szyperska-12-apartamenty-inwestycyjne-ID4zeGw"}, {"miasto": "Poznań", "wojewodztwo": "wielkopolskie", "title": "Lechicka 65", "price": null, "currency": "PLN", "ppm": null, "area": null, "rooms": null, "private": false, "location": "Lechicka, Poznań, wielkopolskie", "url": "https://www.otodom.pl/pl/oferta/lechicka-65-ID4AjTC"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "Partycypacja TBS!", "price": 499000.0, "currency": "PLN", "ppm": 9415.0, "area": 53.0, "rooms": "2", "private": false, "location": "Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/partycypacja-tbs-ID4BzdU"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "2-pokojowe mieszkanie 38m2 + loggia Bezpośrednio", "price": 707255.0, "currency": "PLN", "ppm": 18404.0, "area": 38.43, "rooms": "2", "private": false, "location": "ul. Ostrobramska, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-38m2-loggia-bezposrednio-ID4vrNg"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "3-pokojowe mieszkanie 58m2 + loggia Bezpośrednio", "price": 733977.0, "currency": "PLN", "ppm": 12506.0, "area": 58.69, "rooms": "3", "private": false, "location": "ul. Marywilska 60, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/3-pokojowe-mieszkanie-58m2-loggia-bezposrednio-ID4umLX"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "Mieszkanie, 33,48 m², Warszawa", "price": 735000.0, "currency": "PLN", "ppm": 21953.0, "area": 33.48, "rooms": "1", "private": true, "location": "Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/mieszkanie-33-48-m-warszawa-ID4BMB9"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "2-pokojowe mieszkanie 47m2 + balkon Bezpośrednio", "price": 846775.0, "currency": "PLN", "ppm": 17831.0, "area": 47.49, "rooms": "2", "private": false, "location": "Fajansowa, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-47m2-balkon-bezposrednio-ID4umDi"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "Krakowskie Przedmieście", "price": 1100000.0, "currency": "PLN", "ppm": 20408.0, "area": 53.9, "rooms": "2", "private": false, "location": "ul. Krakowskie Przedmieście, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/krakowskie-przedmiescie-ID4BMBt"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "HIT SPRZEDAŻY! Mieszkanie z ogrodem z dwóch stron | 3 pokoje | 0% PROW", "price": 1110385.65, "currency": "PLN", "ppm": 16100.0, "area": 68.97, "rooms": "3", "private": false, "location": "ul. Szeligowska, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/hit-sprzedazy-mieszkanie-z-ogrodem-z-dwoch-stron-3-pokoje-0-prow-ID4BMBm"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "4-pokojowe mieszkanie 99m2 + ogródek Bezpośrednio", "price": 2281024.0, "currency": "PLN", "ppm": 23001.0, "area": 99.17, "rooms": "4", "private": false, "location": "ul. Jagiellońska, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/4-pokojowe-mieszkanie-99m2-ogrodek-bezposrednio-ID4umXV"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "Wyjątkowy apartament o powierzchni 156,8 m², projekt Paweł Ejsmont", "price": 2690000.0, "currency": "PLN", "ppm": 17156.0, "area": 156.8, "rooms": "4", "private": true, "location": "ul. Kazimierza Jeżewskiego, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/wyjatkowy-apartament-o-powierzchni-156-8-m-projekt-pawel-ejsmont-ID4BDxg"}, {"miasto": "Warszawa", "wojewodztwo": "mazowieckie", "title": "2-pokojowe mieszkanie 35m2 + ogródek", "price": null, "currency": "PLN", "ppm": null, "area": 35.73, "rooms": "2", "private": false, "location": "Szeligowska, Warszawa, mazowieckie", "url": "https://www.otodom.pl/pl/oferta/2-pokojowe-mieszkanie-35m2-ogrodek-ID4AQ8E"}];
+let WOJEWODZTWA = [...new Set(OFERTY.map(o => o.wojewodztwo).filter(Boolean))].sort();
+let activeWoj = "Wszystkie";
+let activeCity = "Wszystkie";
+
+const fmt = n => n == null ? null : new Intl.NumberFormat("pl-PL").format(Math.round(n));
+
+// Miasta dostępne dla wybranego województwa (do filtra miast).
+function citiesForWoj(woj){
+  const src = woj === "Wszystkie" ? OFERTY : OFERTY.filter(o => o.wojewodztwo === woj);
+  return [...new Set(src.map(o => o.miasto))].sort();
+}
+
+// Liczniki uwzględniają już aktywne filtry "wyżej" w hierarchii.
+function countWoj(woj){
+  return woj === "Wszystkie" ? OFERTY.length : OFERTY.filter(o => o.wojewodztwo === woj).length;
+}
+function countCity(city){
+  const base = activeWoj === "Wszystkie" ? OFERTY : OFERTY.filter(o => o.wojewodztwo === activeWoj);
+  return city === "Wszystkie" ? base.length : base.filter(o => o.miasto === city).length;
+}
+
+const opt = (val, label, count, sel) =>
+  `<option value="${val}"${sel?" selected":""}>${label} (${count})</option>`;
+
+function renderChips(){
+  // Lista województw
+  const selWoj = document.getElementById("selWoj");
+  selWoj.innerHTML = [opt("Wszystkie", "Wszystkie", countWoj("Wszystkie"), activeWoj==="Wszystkie"),
+    ...WOJEWODZTWA.map(w => opt(w, w, countWoj(w), w===activeWoj))].join("");
+
+  // Lista miast (zawężona do wybranego województwa)
+  const selCity = document.getElementById("selCity");
+  selCity.innerHTML = [opt("Wszystkie", "Wszystkie", countCity("Wszystkie"), activeCity==="Wszystkie"),
+    ...citiesForWoj(activeWoj).map(c => opt(c, c, countCity(c), c===activeCity))].join("");
+}
+
+document.getElementById("selWoj").addEventListener("change", e => {
+  activeWoj = e.target.value;
+  // Jeśli wybrane miasto nie należy już do województwa — zresetuj.
+  if (activeCity !== "Wszystkie" && !citiesForWoj(activeWoj).includes(activeCity)) activeCity = "Wszystkie";
+  renderChips(); renderGrid();
+});
+document.getElementById("selCity").addEventListener("change", e => {
+  activeCity = e.target.value; renderGrid();
+});
+
+// ── pobieranie 10 najnowszych ofert z Otodom (przez lokalny serwer) ──
+function setStatus(msg, cls){
+  const el = document.getElementById("scrapeStatus");
+  el.textContent = msg; el.className = "scrape-status" + (cls ? " " + cls : "");
+}
+
+// Dołącza świeżo pobrane oferty do listy (bez duplikatów po URL) i odświeża widok.
+function mergeOffers(fresh){
+  const seen = new Set(OFERTY.map(o => o.url));
+  const added = fresh.filter(o => !seen.has(o.url));
+  OFERTY.unshift(...added);                 // najnowsze na początek
+  WOJEWODZTWA = [...new Set(OFERTY.map(o => o.wojewodztwo).filter(Boolean))].sort();
+  renderChips(); renderGrid();
+  return added.length;
+}
+
+document.getElementById("btnScrape").addEventListener("click", async () => {
+  const btn = document.getElementById("btnScrape");
+  if (activeWoj === "Wszystkie" && activeCity === "Wszystkie"){
+    setStatus("Wybierz województwo lub miasto z list powyżej.", "err");
+    return;
+  }
+  const params = new URLSearchParams();
+  if (activeWoj !== "Wszystkie") params.set("woj", activeWoj);
+  if (activeCity !== "Wszystkie") params.set("miasto", activeCity);
+
+  btn.disabled = true;
+  setStatus("Pobieram najnowsze oferty z Otodom…");
+  try {
+    const res = await fetch("/api/scrape?" + params.toString());
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || ("HTTP " + res.status));
+    const added = mergeOffers(data.offers || []);
+    setStatus(`Pobrano ${data.offers.length} najnowszych ofert: ${data.label} · nowych: ${added}.`, "ok");
+  } catch (e) {
+    const hint = (location.protocol === "file:")
+      ? "Otwórz stronę przez serwer: uruchom „python server.py” i wejdź na http://localhost:8000"
+      : "Czy serwer działa? Uruchom „python server.py”.";
+    setStatus("Błąd pobierania: " + e.message + ". " + hint, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ── wysyłanie ofert na Discord (kanał #miasto przez bota) ──
+document.getElementById("btnDiscord").addEventListener("click", async () => {
+  const btn = document.getElementById("btnDiscord");
+  if (activeCity === "Wszystkie"){
+    setStatus("Wybierz miasto z listy — każde miasto trafia na osobny kanał (#nazwa-miasta).", "err");
+    return;
+  }
+  // Oferty aktualnie wyświetlane dla wybranego miasta.
+  const oferty = OFERTY.filter(o => o.miasto === activeCity &&
+    (activeWoj === "Wszystkie" || o.wojewodztwo === activeWoj));
+  if (!oferty.length){
+    setStatus("Brak ofert dla tego miasta — najpierw kliknij „Pobierz”.", "err");
+    return;
+  }
+  btn.disabled = true;
+  setStatus(`Wysyłam ${oferty.length} ofert na Discord (#${activeCity.toLowerCase()})…`);
+  try {
+    const res = await fetch("/api/discord", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ miasto: activeCity, oferty }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || ("HTTP " + res.status));
+    const akcja = data.created ? `utworzono kanał #${data.channel}` : `kanał #${data.channel}`;
+    setStatus(`Discord: ${akcja} · nowych wysłano: ${data.sent}, pominięto (już były): ${data.skipped}.`, "ok");
+  } catch (e) {
+    setStatus("Błąd wysyłki na Discord: " + e.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+const PIN = `<svg class="pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+
+function roomLabel(r){
+  const n = parseInt(r, 10);
+  if (n === 1) return "pokój";
+  if (n >= 2 && n <= 4) return "pokoje";
+  return "pokoi";
+}
+
+function card(o, i){
+  const idx = String(i + 1).padStart(2, "0");
+  const inv = o.price == null;
+  const tags = [
+    `<span class="tag tag-city">${o.miasto}</span>`,
+    inv ? `<span class="tag tag-inv">inwestycja</span>`
+        : (o.private ? `<span class="tag tag-priv">prywatne</span>`
+                     : `<span class="tag">agencja</span>`),
+  ].join("");
+  const specs = [
+    o.area  ? `<div class="spec"><span class="spec-val">${(""+o.area).replace(".",",")}</span><span class="spec-lab">m²</span></div>` : "",
+    o.rooms ? `<div class="spec"><span class="spec-val">${o.rooms}</span><span class="spec-lab">${roomLabel(o.rooms)}</span></div>` : "",
+  ].filter(Boolean).join("");
+  const price = inv
+    ? `<div class="price-main price-inv">Inwestycja</div>`
+    : `<div class="price-main">${fmt(o.price)}<span class="price-cur">${o.currency}</span></div>` +
+      (o.ppm ? `<div class="price-ppm">${fmt(o.ppm)} ${o.currency}/m²</div>` : "");
+  return `<a class="row" style="--i:${i}" href="${o.url}" target="_blank" rel="noopener">
+      <span class="row-index">${idx}</span>
+      <div class="row-body">
+        <div class="row-tags">${tags}</div>
+        <h2 class="row-title">${o.title}</h2>
+        <div class="row-loc">${PIN}${o.location || "—"}</div>
+      </div>
+      <div class="row-specs">${specs}</div>
+      <div class="row-price">${price}</div>
+      <span class="row-arrow">→</span>
+    </a>`;
+}
+
+function renderGrid(){
+  const list = OFERTY.filter(o =>
+    (activeWoj === "Wszystkie" || o.wojewodztwo === activeWoj) &&
+    (activeCity === "Wszystkie" || o.miasto === activeCity));
+  const grid = document.getElementById("grid");
+  const label = activeCity !== "Wszystkie" ? activeCity
+              : activeWoj !== "Wszystkie" ? activeWoj : "wybranych filtrów";
+  grid.innerHTML = list.length
+    ? list.map((o, i) => card(o, i)).join("")
+    : `<div class="empty">Brak ofert dla: ${label}</div>`;
+  document.getElementById("shown").textContent = list.length;
+}
+
+renderChips();
+renderGrid();
+
+// Strona otwarta z pliku (dwuklik) nie ma serwera -> pobieranie nie zadziała.
+// Ostrzegamy od razu i blokujemy przycisk, zamiast pozwalać na "Failed to fetch".
+if (location.protocol === "file:") {
+  document.getElementById("btnScrape").disabled = true;
+  document.getElementById("btnDiscord").disabled = true;
+  setStatus("Otwarto z pliku — funkcje wyłączone. Uruchom „Oferty.vbs” i wejdź na http://localhost:8000", "err");
+}
+</script>
+</body>
+</html>

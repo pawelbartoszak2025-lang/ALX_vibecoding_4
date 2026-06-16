@@ -1,0 +1,10 @@
+# sekrety — NIGDY nie commituj tokenu bota
+discord_config.json
+
+# lokalne dane (generowane)
+otodom.db
+otodom_pages/
+
+# pliki tymczasowe Pythona
+__pycache__/
+*.pyc
