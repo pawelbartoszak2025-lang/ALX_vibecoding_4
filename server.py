@@ -9,6 +9,22 @@ i miasto z list rozwijanych i kliknij "Pobierz 10 najnowszych ofert".
 import re, json, sqlite3, os, unicodedata, urllib.request, ssl, threading, webbrowser
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from http.cookies import SimpleCookie
+
+import auth, store, scheduler
+
+
+def _session_token(handler):
+    raw = handler.headers.get("Cookie")
+    if not raw:
+        return None
+    ck = SimpleCookie()
+    ck.load(raw)
+    return ck["session"].value if "session" in ck else None
+
+
+def _current_user(handler):
+    return auth.session_user(_session_token(handler))
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, "otodom.db")
@@ -157,47 +173,141 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json(self):
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        if not length:
+            return {}
+        return json.loads(self.rfile.read(length).decode("utf-8"))
+
+    def _send_with_cookie(self, code, body, token):
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Set-Cookie", f"session={token}; Path=/; HttpOnly; SameSite=Lax")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_file(self, name, ctype):
+        try:
+            with open(os.path.join(BASE, name), encoding="utf-8") as f:
+                self._send(200, f.read(), ctype)
+        except FileNotFoundError:
+            self._send(404, f"{name} nie znaleziony", "text/plain; charset=utf-8")
+
     def do_GET(self):
         parsed = urlparse(self.path)
-        if parsed.path in ("/", "/oferty.html"):
-            try:
-                with open(HTML, encoding="utf-8") as f:
-                    self._send(200, f.read(), "text/html; charset=utf-8")
-            except FileNotFoundError:
-                self._send(404, "oferty.html nie znaleziony", "text/plain; charset=utf-8")
+        path = parsed.path
+        user = _current_user(self)
+
+        if path == "/login":
+            self._serve_file("login.html", "text/html; charset=utf-8")
+            return
+        if path == "/criteria.js":
+            self._serve_file("criteria.js", "application/javascript; charset=utf-8")
+            return
+        if path in ("/", "/oferty.html"):
+            if not user:
+                self.send_response(302)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+            self._serve_file("oferty.html", "text/html; charset=utf-8")
             return
 
-        if parsed.path == "/api/scrape":
-            q = parse_qs(parsed.query)
-            woj = (q.get("woj", [""])[0]).strip()
-            miasto = (q.get("miasto", [""])[0]).strip()
-            if not woj and not miasto:
-                self._send(400, json.dumps({"error": "Wybierz województwo lub miasto."}))
-                return
-            try:
-                print(f"[scrape] woj={woj!r} miasto={miasto!r}")
-                url, offers = scrape(woj, miasto)
-                save_to_db(offers)
-                label = miasto or woj
-                print(f"[scrape] {url} -> {len(offers)} ofert")
-                self._send(200, json.dumps(
-                    {"offers": offers, "label": label, "url": url}, ensure_ascii=False))
-            except Exception as e:
-                print("[scrape] błąd:", e)
-                self._send(502, json.dumps({"error": f"{type(e).__name__}: {e}"}))
+        if path == "/api/me":
+            self._send(200, json.dumps({"logged_in": bool(user),
+                "account_exists": auth.account_exists(), "username": user}))
             return
+
+        # poniżej: tylko dla zalogowanych
+        if path.startswith("/api/"):
+            if not user:
+                self._send(401, json.dumps({"error": "Niezalogowany"}))
+                return
+            if path == "/api/offers":
+                self._send(200, json.dumps(store.read_offers(), ensure_ascii=False))
+                return
+            if path == "/api/criteria":
+                self._send(200, json.dumps(store.get_settings("criteria"), ensure_ascii=False))
+                return
+            if path == "/api/scheduler":
+                self._send(200, json.dumps(store.get_settings("scheduler"), ensure_ascii=False))
+                return
+            if path == "/api/scrape":
+                q = parse_qs(parsed.query)
+                woj = (q.get("woj", [""])[0]).strip()
+                miasto = (q.get("miasto", [""])[0]).strip()
+                if not woj and not miasto:
+                    self._send(400, json.dumps({"error": "Wybierz województwo lub miasto."}))
+                    return
+                try:
+                    print(f"[scrape] woj={woj!r} miasto={miasto!r}")
+                    url, offers = scrape(woj, miasto)
+                    store.save_offers(offers)
+                    print(f"[scrape] {url} -> {len(offers)} ofert")
+                    self._send(200, json.dumps(
+                        {"offers": offers, "label": miasto or woj, "url": url}, ensure_ascii=False))
+                except Exception as e:
+                    print("[scrape] błąd:", e)
+                    self._send(502, json.dumps({"error": f"{type(e).__name__}: {e}"}))
+                return
 
         self._send(404, json.dumps({"error": "not found"}))
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path == "/api/discord":
-            try:
-                length = int(self.headers.get("Content-Length", 0) or 0)
-                body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
-            except Exception:
-                self._send(400, json.dumps({"error": "Zły format żądania."}))
+        path = parsed.path
+        try:
+            body = self._read_json()
+        except Exception:
+            self._send(400, json.dumps({"error": "Zły format żądania."}))
+            return
+
+        if path == "/api/register":
+            if auth.account_exists():
+                self._send(409, json.dumps({"error": "Konto już istnieje."}))
                 return
+            try:
+                auth.create_account((body.get("username") or "").strip(), body.get("password") or "")
+                token = auth.create_session(auth.get_username())
+                self._send_with_cookie(200, json.dumps({"ok": True}), token)
+            except Exception as e:
+                self._send(400, json.dumps({"error": str(e)}, ensure_ascii=False))
+            return
+
+        if path == "/api/login":
+            u = (body.get("username") or "").strip()
+            if auth.verify_login(u, body.get("password") or ""):
+                token = auth.create_session(u)
+                self._send_with_cookie(200, json.dumps({"ok": True}), token)
+            else:
+                self._send(401, json.dumps({"error": "Błędny login lub hasło."}))
+            return
+
+        if path == "/api/logout":
+            auth.delete_session(_session_token(self))
+            self._send(200, json.dumps({"ok": True}))
+            return
+
+        # poniżej: tylko dla zalogowanych
+        if not _current_user(self):
+            self._send(401, json.dumps({"error": "Niezalogowany"}))
+            return
+
+        if path == "/api/criteria":
+            saved = store.save_settings("criteria", body)
+            self._send(200, json.dumps(saved, ensure_ascii=False))
+            return
+
+        if path == "/api/scheduler":
+            body["interval_min"] = scheduler.clamp_interval(body.get("interval_min"))
+            saved = store.save_settings("scheduler", body)
+            self._send(200, json.dumps(saved, ensure_ascii=False))
+            return
+
+        if path == "/api/discord":
             miasto = (body.get("miasto") or "").strip()
             offers = body.get("oferty") or []
             if not miasto:
@@ -233,6 +343,8 @@ if __name__ == "__main__":
         webbrowser.open(url)
         raise SystemExit(0)
     print(f"Serwer działa: {url}")
+    scheduler.start(__import__("server"))
+    print("Harmonogram: wątek uruchomiony.")
     print("Strona otworzy się w przeglądarce. Ctrl+C aby zatrzymać.")
     # Otwórz przeglądarkę chwilę po starcie serwera.
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()
