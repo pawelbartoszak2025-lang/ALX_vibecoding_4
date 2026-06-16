@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Przewodnik — projekt Oferty Otodom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  :root{
+    --paper:#f1ede2; --paper-2:#e9e2d2; --ink:#221d16; --ink-soft:#6f6657; --ink-faint:#a79c89;
+    --line:#ddd5c4; --line-strong:#cabda3; --clay:#b8462b; --clay-deep:#8c3219; --clay-tint:#f4e3da;
+    --olive:#5d6a38; --olive-tint:#ebeede; --gold:#9c7415; --gold-tint:#f3e9cd;
+    --pad:clamp(20px,5vw,72px);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:var(--paper); color:var(--ink);
+        font-family:"Hanken Grotesk",system-ui,sans-serif; line-height:1.6; }
+  header{ padding:clamp(36px,6vw,68px) var(--pad) clamp(20px,3vw,30px); border-bottom:1.5px solid var(--ink); }
+  .eyebrow{ font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.26em;
+            text-transform:uppercase; color:var(--clay); margin-bottom:14px; }
+  h1{ font-family:"Fraunces",serif; font-weight:600; margin:0; font-size:clamp(34px,6vw,64px);
+      line-height:1.02; letter-spacing:-.02em; }
+  h1 em{ font-style:italic; font-weight:400; color:var(--clay); }
+  .lead{ margin:16px 0 0; color:var(--ink-soft); font-size:clamp(15px,1.6vw,18px); max-width:62ch; }
+
+  nav.toc{ position:sticky; top:0; z-index:5; background:rgba(241,237,226,.9);
+           backdrop-filter:blur(10px); border-bottom:1px solid var(--line-strong);
+           padding:12px var(--pad); display:flex; gap:18px; flex-wrap:wrap;
+           font-family:"JetBrains Mono",monospace; font-size:12px; }
+  nav.toc a{ color:var(--ink-soft); text-decoration:none; }
+  nav.toc a:hover{ color:var(--clay); }
+
+  main{ padding:0 var(--pad) 80px; }
+  section{ padding:clamp(30px,4vw,52px) 0; border-bottom:1px solid var(--line); max-width:86ch; }
+  h2{ font-family:"Fraunces",serif; font-weight:600; font-size:clamp(22px,3vw,32px);
+      margin:0 0 6px; letter-spacing:-.01em; }
+  h2 .num{ color:var(--ink-faint); font-size:.7em; margin-right:10px; }
+  h3{ font-family:"Fraunces",serif; font-weight:600; font-size:18px; margin:22px 0 4px; }
+  p{ margin:10px 0; color:#342e25; }
+  .muted{ color:var(--ink-soft); }
+  ul,ol{ margin:10px 0; padding-left:22px; }
+  li{ margin:6px 0; }
+  code{ font-family:"JetBrains Mono",monospace; font-size:.88em; color:var(--clay-deep);
+        background:var(--clay-tint); padding:2px 7px; border-radius:3px; }
+  .badge{ font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.1em;
+          text-transform:uppercase; padding:3px 9px; border-radius:3px; vertical-align:middle; margin-left:8px; }
+  .ok{ color:var(--olive); background:var(--olive-tint); border:1px solid #bcc497; }
+  .soon{ color:var(--gold); background:var(--gold-tint); border:1px solid #dcc787; }
+
+  .step{ background:var(--paper-2); border:1px solid var(--line-strong); border-radius:8px;
+         padding:18px 20px; margin:14px 0; }
+  .step b{ color:var(--clay-deep); }
+  .grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); margin-top:14px; }
+  .file{ background:#fff; border:1px solid var(--line-strong); border-radius:8px; padding:14px 16px; }
+  .file .fn{ font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--clay-deep); font-weight:600; }
+  .file .fd{ font-size:13.5px; color:var(--ink-soft); margin-top:4px; }
+
+  .flow{ counter-reset:s; margin:16px 0; padding:0; list-style:none; }
+  .flow li{ position:relative; padding:8px 0 8px 42px; }
+  .flow li::before{ counter-increment:s; content:counter(s); position:absolute; left:0; top:6px;
+    width:26px; height:26px; border-radius:50%; background:var(--clay); color:#fff;
+    font-family:"JetBrains Mono",monospace; font-size:13px; display:grid; place-items:center; }
+
+  .callout{ border-left:3px solid var(--clay); background:var(--clay-tint); padding:12px 16px;
+            border-radius:0 6px 6px 0; margin:16px 0; font-size:14.5px; }
+  dl{ margin:10px 0; }
+  dt{ font-weight:600; margin-top:12px; }
+  dd{ margin:2px 0 0; color:var(--ink-soft); }
+  footer{ padding:28px var(--pad); border-top:1.5px solid var(--ink); color:var(--ink-soft);
+          font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Przewodnik · 2026</div>
+  <h1>Oferty <em>Otodom</em> — jak to działa</h1>
+  <p class="lead">Mała aplikacja, która pobiera ogłoszenia mieszkań z Otodom, pokazuje je na ładnej stronie
+  i potrafi wysyłać je na Discorda. Ten przewodnik tłumaczy wszystko prostym językiem — bez wiedzy technicznej.</p>
+</header>
+
+<nav class="toc">
+  <a href="#czym">① Czym to jest</a>
+  <a href="#start">② Uruchomienie</a>
+  <a href="#uzywanie">③ Jak używać</a>
+  <a href="#pod-spodem">④ Jak działa w środku</a>
+  <a href="#pliki">⑤ Pliki</a>
+  <a href="#wkrotce">⑥ Co powstanie</a>
+  <a href="#slownik">⑦ Słowniczek</a>
+</nav>
+
+<main>
+
+<section id="czym">
+  <h2><span class="num">①</span>Czym jest ten projekt</h2>
+  <p>To <b>osobisty asystent do śledzenia ofert mieszkań</b>. Zamiast ręcznie wchodzić na Otodom,
+  klikasz przycisk (albo wpisujesz komendę na Discordzie), a aplikacja sama pobiera 10 najnowszych ofert
+  z wybranego miasta i pokazuje je w czytelnej liście. Może też wrzucać je na Twój kanał Discord.</p>
+  <p class="muted">Projekt działa <b>lokalnie</b> — w całości na Twoim komputerze. Nic nie jest publikowane w internecie.</p>
+</section>
+
+<section id="start">
+  <h2><span class="num">②</span>Jak uruchomić</h2>
+  <div class="step">
+    <p>👉 <b>Dwuklik pliku <code>Oferty.vbs</code></b> w folderze projektu.</p>
+    <p class="muted">To jedno kliknięcie uruchamia w tle dwie rzeczy: serwer strony oraz bota Discord —
+    <b>bez żadnego czarnego okna</b>. Po chwili sama otworzy się strona w przeglądarce.</p>
+  </div>
+  <p>Stronę znajdziesz pod adresem <code>http://localhost:8000</code>.</p>
+  <p>Żeby zakończyć — dwuklik <code>Zatrzymaj serwer.vbs</code> (albo po prostu wyłącz/zrestartuj komputer).</p>
+  <div class="callout">⚠️ Nie otwieraj <code>oferty.html</code> dwuklikiem — wtedy przyciski nie zadziałają,
+  bo nie ma serwera. Zawsze startuj przez <code>Oferty.vbs</code> i adres <code>localhost:8000</code>.</div>
+</section>
+
+<section id="uzywanie">
+  <h2><span class="num">③</span>Jak używać</h2>
+
+  <h3>Na stronie</h3>
+  <ul>
+    <li>Wybierz <b>województwo</b> i <b>miasto</b> z list rozwijanych.</li>
+    <li>Kliknij <b>„Pobierz 10 najnowszych ofert"</b> — pojawią się aktualne ogłoszenia.</li>
+    <li>Kliknij <b>„Wyślij na Discord"</b> — oferty trafią na kanał miasta (np. <code>#poznan</code>).</li>
+  </ul>
+
+  <h3>Na Discordzie <span class="badge ok">działa</span></h3>
+  <p>Na swoim serwerze Discord wpisz komendę miasta:</p>
+  <ul>
+    <li><code>/poznan</code> · <code>/krakow</code> · <code>/warszawa</code> · <code>/gdansk</code></li>
+  </ul>
+  <p>Bot pobierze 10 najnowszych ofert i wrzuci je na kanał danego miasta. Przy pierwszym razie
+  <b>sam utworzy kanał</b> (np. <code>#poznan</code>), a przy kolejnych dołoży <b>tylko nowe</b> oferty —
+  bez powtórek.</p>
+</section>
+
+<section id="pod-spodem">
+  <h2><span class="num">④</span>Jak to działa w środku (po ludzku)</h2>
+  <p>Otodom blokuje „roboty", więc strona w przeglądarce nie może pobrać ofert sama. Dlatego potrzebny jest
+  <b>pośrednik</b> — mały program na Twoim komputerze, który udaje przeglądarkę i pobiera dane. Oto przepływ:</p>
+  <ol class="flow">
+    <li>Klikasz „Pobierz" (lub wpisujesz <code>/poznan</code> na Discordzie).</li>
+    <li><b>Serwer</b> (<code>server.py</code>) wchodzi na Otodom z odpowiednimi nagłówkami i pobiera stronę wyników.</li>
+    <li>Wyłuskuje z niej dane ofert (tytuł, cena, metraż, pokoje, lokalizacja, link).</li>
+    <li>Zapisuje je w lokalnej bazie <code>otodom.db</code> i pokazuje na stronie.</li>
+    <li>Na życzenie <b>bot</b> wysyła nowe oferty na kanał Discord (pamiętając, co już wysłał).</li>
+  </ol>
+  <div class="callout">W skrócie: <b>strona</b> to wygląd, <b>serwer</b> to mózg pobierający dane,
+  <b>baza</b> to pamięć, a <b>bot</b> to posłaniec na Discorda.</div>
+</section>
+
+<section id="pliki">
+  <h2><span class="num">⑤</span>Z czego składa się projekt</h2>
+  <div class="grid">
+    <div class="file"><div class="fn">Oferty.vbs</div><div class="fd">Uruchamia wszystko jednym dwuklikiem (bez okna).</div></div>
+    <div class="file"><div class="fn">Zatrzymaj serwer.vbs</div><div class="fd">Wyłącza serwer i bota.</div></div>
+    <div class="file"><div class="fn">server.py</div><div class="fd">Serwer: serwuje stronę i pobiera oferty z Otodom.</div></div>
+    <div class="file"><div class="fn">oferty.html</div><div class="fd">Wygląd strony: lista ofert, filtry, przyciski.</div></div>
+    <div class="file"><div class="fn">discord_bot.py</div><div class="fd">Bot z komendami /poznan, /krakow itd.</div></div>
+    <div class="file"><div class="fn">discord_send.py</div><div class="fd">Wysyłanie ofert i tworzenie kanałów na Discordzie.</div></div>
+    <div class="file"><div class="fn">discord_config.json</div><div class="fd">Token bota (sekret — trzymany tylko lokalnie).</div></div>
+    <div class="file"><div class="fn">otodom.db</div><div class="fd">Baza danych: zapisane oferty i historia wysyłek.</div></div>
+    <div class="file"><div class="fn">otodom_scrape.py</div><div class="fd">Starszy skrypt do parsowania zapisanych stron.</div></div>
+    <div class="file"><div class="fn">docs/superpowers/…</div><div class="fd">Specyfikacja i plan nowych funkcji.</div></div>
+  </div>
+</section>
+
+<section id="wkrotce">
+  <h2><span class="num">⑥</span>Co dopiero powstanie <span class="badge soon">w planie</span></h2>
+  <p>Te funkcje są <b>zaprojektowane i opisane w planie</b>, ale jeszcze nie wdrożone:</p>
+  <dl>
+    <dt>🔐 Logowanie <span class="badge soon">wkrótce</span></dt>
+    <dd>Jedno konto (login + hasło). Bez zalogowania nie widać ofert.</dd>
+    <dt>🎯 Kryteria wyszukiwania <span class="badge soon">wkrótce</span></dt>
+    <dd>Ustawiasz, co Cię interesuje (cena maks., cena za m², liczba pokoi, powierzchnia, miasto, typ).
+    Po zalogowaniu strona pokaże <b>tylko pasujące</b> oferty (z przełącznikiem na wszystkie).</dd>
+    <dt>⏱️ Automatyczne pobieranie <span class="badge soon">wkrótce</span></dt>
+    <dd>Harmonogram co 10–15 minut, z konfiguratorem: włącz/wyłącz, częstotliwość, miasta oraz opcja
+    automatycznej wysyłki na Discord.</dd>
+  </dl>
+  <p class="muted">Szczegóły: pliki w <code>docs/superpowers/</code> oraz lista zadań w <code>DO_ZROBIENIA.md</code>.</p>
+</section>
+
+<section id="slownik">
+  <h2><span class="num">⑦</span>Słowniczek prostych pojęć</h2>
+  <dl>
+    <dt>Serwer</dt><dd>Program, który czeka na Twoje kliknięcia i obsługuje stronę oraz pobieranie danych.</dd>
+    <dt>localhost / port 8000</dt><dd>„Adres" Twojego komputera dla samego siebie. <code>localhost:8000</code> to drzwi, pod którymi słucha serwer.</dd>
+    <dt>Scraping</dt><dd>Automatyczne „odczytywanie" ofert ze strony internetowej.</dd>
+    <dt>Bot</dt><dd>Automatyczny użytkownik Discorda, który wykonuje komendy (np. <code>/poznan</code>).</dd>
+    <dt>Token</dt><dd>Tajne hasło bota. Nie wolno go nikomu pokazywać — leży tylko w <code>discord_config.json</code>.</dd>
+    <dt>Slug</dt><dd>Uproszczona nazwa do adresu/kanału, np. <code>Gdańsk → gdansk</code>.</dd>
+    <dt>Baza danych (SQLite)</dt><dd>Plik <code>otodom.db</code>, w którym zapisują się oferty — żeby nie pobierać ich w kółko.</dd>
+    <dt>Dedup (pomijanie powtórek)</dt><dd>Bot pamięta, co już wysłał, więc na Discord trafiają tylko nowe oferty.</dd>
+  </dl>
+</section>
+
+</main>
+
+<footer>Przewodnik wygenerowany lokalnie · projekt Oferty Otodom · 2026</footer>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prezentacja — co wdrażamy w projekcie Oferty Otodom</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,900;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  :root{
+    --paper:#f1ede2; --paper-2:#e9e2d2; --ink:#221d16; --ink-soft:#6f6657; --ink-faint:#a79c89;
+    --line:#ddd5c4; --line-strong:#cabda3; --clay:#b8462b; --clay-deep:#8c3219; --clay-tint:#f4e3da;
+    --olive:#5d6a38; --olive-tint:#ebeede; --gold:#9c7415; --gold-tint:#f3e9cd;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ margin:0; background:var(--paper); color:var(--ink);
+        font-family:"Hanken Grotesk",system-ui,sans-serif; overflow:hidden; }
+
+  .deck{ height:100vh; width:100vw; position:relative; }
+  .slide{ position:absolute; inset:0; padding:clamp(32px,7vw,110px); display:none;
+          flex-direction:column; justify-content:center; max-width:1100px; margin:0 auto;
+          animation:fade .45s ease; }
+  .slide.active{ display:flex; }
+  @keyframes fade{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;} }
+
+  .kicker{ font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.24em;
+           text-transform:uppercase; color:var(--clay); margin-bottom:18px; }
+  h1{ font-family:"Fraunces",serif; font-weight:600; font-size:clamp(38px,7vw,82px);
+      line-height:1.02; letter-spacing:-.02em; margin:0; }
+  h1 em{ font-style:italic; font-weight:400; color:var(--clay); }
+  h2{ font-family:"Fraunces",serif; font-weight:600; font-size:clamp(28px,4.5vw,52px);
+      line-height:1.08; letter-spacing:-.01em; margin:0 0 18px; }
+  .sub{ color:var(--ink-soft); font-size:clamp(16px,1.9vw,22px); max-width:60ch; margin:18px 0 0; }
+  p{ font-size:clamp(15px,1.7vw,20px); line-height:1.55; color:#342e25; margin:8px 0; }
+  ul{ font-size:clamp(15px,1.7vw,20px); line-height:1.5; margin:10px 0; padding-left:0; list-style:none; }
+  li{ margin:12px 0; padding-left:34px; position:relative; }
+  li::before{ content:"→"; position:absolute; left:0; color:var(--clay);
+              font-family:"Fraunces",serif; }
+  code{ font-family:"JetBrains Mono",monospace; font-size:.86em; color:var(--clay-deep);
+        background:var(--clay-tint); padding:2px 7px; border-radius:3px; }
+  b{ color:var(--ink); }
+
+  .cards{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); margin-top:14px; }
+  .card{ background:#fff; border:1px solid var(--line-strong); border-radius:12px; padding:20px 22px; }
+  .card .ico{ font-size:30px; }
+  .card .t{ font-family:"Fraunces",serif; font-weight:600; font-size:21px; margin:8px 0 4px; }
+  .card .d{ color:var(--ink-soft); font-size:15px; line-height:1.45; }
+
+  .flow{ display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; margin-top:18px; }
+  .flow .b{ background:var(--paper-2); border:1px solid var(--line-strong); border-radius:10px;
+            padding:14px 16px; font-size:15px; flex:1; min-width:150px; }
+  .flow .b b{ display:block; font-family:"Fraunces",serif; font-size:17px; margin-bottom:3px; }
+  .flow .arr{ display:grid; place-items:center; color:var(--clay); font-size:24px;
+              font-family:"Fraunces",serif; }
+
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  .risk{ background:#fff; border:1px solid var(--line-strong); border-left:4px solid var(--clay);
+         border-radius:0 10px 10px 0; padding:14px 18px; margin:10px 0; }
+  .risk .r{ font-weight:600; }
+  .risk .m{ color:var(--olive); font-size:15px; margin-top:4px; }
+  .risk .m::before{ content:"✓ "; }
+
+  .pill{ font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em;
+         text-transform:uppercase; padding:4px 10px; border-radius:4px; }
+  .soon{ color:var(--gold); background:var(--gold-tint); border:1px solid #dcc787; }
+
+  /* sterowanie */
+  .bar{ position:fixed; bottom:0; left:0; right:0; height:56px; display:flex; align-items:center;
+        justify-content:space-between; padding:0 22px; border-top:1.5px solid var(--ink);
+        background:rgba(241,237,226,.92); backdrop-filter:blur(8px); z-index:10; }
+  .dots{ display:flex; gap:7px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--line-strong); border:none;
+        cursor:pointer; padding:0; }
+  .dot.on{ background:var(--clay); }
+  .nav{ display:flex; gap:8px; align-items:center; }
+  button.b{ font-family:"Hanken Grotesk",sans-serif; font-size:14px; font-weight:600; cursor:pointer;
+            border:1px solid var(--line-strong); background:#fff; color:var(--ink);
+            border-radius:6px; padding:8px 16px; }
+  button.b:hover{ border-color:var(--clay); color:var(--clay); }
+  button.b:disabled{ opacity:.4; cursor:default; }
+  .count{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--ink-soft); min-width:46px; text-align:center; }
+  .hint{ font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-faint); }
+  @media (max-width:680px){ .two{ grid-template-columns:1fr; } .hint{ display:none; } }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 -->
+  <section class="slide active">
+    <div class="kicker">Prezentacja · projekt do nauki</div>
+    <h1>Oferty <em>Otodom</em><br>— co wdrażamy</h1>
+    <p class="sub">Aplikacja, która sama pobiera ogłoszenia mieszkań, pokazuje tylko te, które Cię interesują,
+    i może działać automatycznie. Oto plan rozbudowy — prosto i bez żargonu.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <div class="kicker">Co dochodzi</div>
+    <h2>Trzy nowe funkcje</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">🔐</div><div class="t">Logowanie</div>
+        <div class="d">Wejście na hasło. Aplikacja jest „Twoja" — nikt postronny nie zobaczy ofert.</div></div>
+      <div class="card"><div class="ico">🎯</div><div class="t">Moje kryteria</div>
+        <div class="d">Ustawiasz, czego szukasz (cena, metraż, pokoje…). Widzisz tylko pasujące oferty.</div></div>
+      <div class="card"><div class="ico">⏱️</div><div class="t">Automat (harmonogram)</div>
+        <div class="d">Aplikacja sama pobiera nowe oferty co 10–15 minut. Bez klikania.</div></div>
+    </div>
+    <p class="sub">Cel: mniej klikania, a więcej trafionych ofert „pod nosem".</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <div class="kicker">Z czego jest zbudowana</div>
+    <h2>Stack — czyli „klocki", z których to składamy</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">🧠</div><div class="t">Python (serwer)</div>
+        <div class="d">„Mózg" — pobiera oferty z Otodom i obsługuje stronę. Działa na Twoim komputerze.</div></div>
+      <div class="card"><div class="ico">🗄️</div><div class="t">Baza SQLite</div>
+        <div class="d">„Pamięć" w jednym pliku — przechowuje oferty, konto i ustawienia.</div></div>
+      <div class="card"><div class="ico">🎨</div><div class="t">Strona (HTML/JS)</div>
+        <div class="d">„Wygląd" — listy, filtry, przyciski, panele kryteriów i harmonogramu.</div></div>
+      <div class="card"><div class="ico">🤖</div><div class="t">Bot Discord</div>
+        <div class="d">„Posłaniec" — komendy <code>/poznan</code> i wysyłka ofert na kanały.</div></div>
+    </div>
+    <p class="sub">Ważne: <b>nic nie trzeba dodatkowo instalować</b> poza tym, co już jest. Wszystko lokalnie, za darmo.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <div class="kicker">Jak to działa</div>
+    <h2>Twój dzień z aplikacją</h2>
+    <div class="flow">
+      <div class="b"><b>1. Logujesz się</b>Hasło odblokowuje aplikację.</div>
+      <div class="arr">→</div>
+      <div class="b"><b>2. Automat pobiera</b>Co 10–15 min świeże oferty z Otodom.</div>
+      <div class="arr">→</div>
+      <div class="b"><b>3. Filtr kryteriów</b>Widzisz tylko to, co spełnia Twoje wymagania.</div>
+      <div class="arr">→</div>
+      <div class="b"><b>4. Discord</b>Najlepsze trafiają na kanał miasta.</div>
+    </div>
+    <p class="sub">Wszystko dzieje się w tle — Ty tylko zaglądasz i przeglądasz dopasowane oferty.</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <div class="kicker">Funkcja 1 <span class="pill soon">w planie</span></div>
+    <h2>🔐 Logowanie</h2>
+    <ul>
+      <li>Jedno konto: <b>login + hasło</b> (przy pierwszym uruchomieniu sam je zakładasz).</li>
+      <li>Bez zalogowania <b>nie widać ofert</b> — prosta ochrona prywatności.</li>
+      <li>Hasło jest <b>zaszyfrowane</b> (nie zapisujemy go „gołego").</li>
+    </ul>
+    <p class="sub">To projekt lokalny, więc bezpieczeństwo jest „rozsądne", a nie bankowe — w sam raz do nauki.</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <div class="kicker">Funkcja 2 <span class="pill soon">w planie</span></div>
+    <h2>🎯 Moje kryteria</h2>
+    <ul>
+      <li>Ustawiasz: <b>cena maks.</b>, <b>cena za m²</b>, <b>min. pokoi</b>, <b>powierzchnia</b>, <b>miasto</b>, <b>typ</b> (prywatne/agencja).</li>
+      <li>Po zalogowaniu lista pokazuje <b>tylko pasujące</b> oferty.</li>
+      <li>Jednym kliknięciem przełączasz na „pokaż wszystkie".</li>
+    </ul>
+    <p class="sub">Koniec z przewijaniem setek ogłoszeń — od razu widzisz to, co dla Ciebie sensowne.</p>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide">
+    <div class="kicker">Funkcja 3 <span class="pill soon">w planie</span></div>
+    <h2>⏱️ Automatyczne pobieranie</h2>
+    <ul>
+      <li>Aplikacja sama sprawdza nowe oferty <b>co 10–15 minut</b> (nie częściej — to bezpieczne dla Otodom).</li>
+      <li>Prosty <b>konfigurator</b>: włącz/wyłącz, częstotliwość, które miasta, oraz „wysyłaj też na Discord".</li>
+      <li>Wszystko możesz <b>wyłączyć</b> jednym przełącznikiem.</li>
+    </ul>
+    <p class="sub">Dzięki temu nowe okazje pojawiają się same, bez Twojego udziału.</p>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide">
+    <div class="kicker">Na przyszłość</div>
+    <h2>Jak to skalować</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">🏙️</div><div class="t">Więcej miast</div>
+        <div class="d">Dołożenie kolejnych miast to drobna zmiana — mechanizm jest gotowy.</div></div>
+      <div class="card"><div class="ico">👥</div><div class="t">Więcej osób</div>
+        <div class="d">Dziś jedno konto. W przyszłości można dodać wielu użytkowników, każdy z własnymi kryteriami.</div></div>
+      <div class="card"><div class="ico">☁️</div><div class="t">Praca 24/7</div>
+        <div class="d">Przeniesienie na tani serwer/chmurę = działa bez włączonego komputera.</div></div>
+      <div class="card"><div class="ico">🔔</div><div class="t">Powiadomienia</div>
+        <div class="d">Mail/SMS/push, gdy pojawi się oferta idealnie pasująca do kryteriów.</div></div>
+    </div>
+    <p class="sub">Fundament jest prosty i modułowy, więc rozbudowa idzie małymi krokami — bez przepisywania całości.</p>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide">
+    <div class="kicker">Czego pilnować</div>
+    <h2>Ryzyka i jak je ograniczamy</h2>
+    <div class="two">
+      <div>
+        <div class="risk"><div class="r">Otodom zmieni stronę</div>
+          <div class="m">Pobieranie żyje w jednym miejscu — łatwo poprawić.</div></div>
+        <div class="risk"><div class="r">Za częste pobieranie = blokada</div>
+          <div class="m">Limit min. 10 min wymuszony „na sztywno".</div></div>
+      </div>
+      <div>
+        <div class="risk"><div class="r">Wyciek tokenu bota</div>
+          <div class="m">Token poza repozytorium; w razie czego reset w minutę.</div></div>
+        <div class="risk"><div class="r">Komputer wyłączony = brak pobierania</div>
+          <div class="m">Rozwiązanie docelowe: serwer/chmura 24/7.</div></div>
+      </div>
+    </div>
+    <p class="sub">Żadne z ryzyk nie jest groźne dla projektu do nauki — wszystkie mają prosty sposób obejścia.</p>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="kicker">Podsumowanie</div>
+    <h2>W skrócie</h2>
+    <ul>
+      <li><b>Dodajemy:</b> logowanie, kryteria i automatyczne pobieranie.</li>
+      <li><b>Stack:</b> Python + baza SQLite + strona + bot — wszystko lokalnie, bez kosztów.</li>
+      <li><b>Skalowanie:</b> więcej miast, więcej osób, chmura, powiadomienia — krok po kroku.</li>
+      <li><b>Ryzyka:</b> znane i z gotowym planem ograniczenia.</li>
+    </ul>
+    <p class="sub">Następny krok: ruszamy z wdrożeniem według gotowego planu (<code>DO_ZROBIENIA.md</code>). Dziękuję! 🙌</p>
+  </section>
+
+</div>
+
+<div class="bar">
+  <div class="dots" id="dots"></div>
+  <span class="hint">← → spacja · klik w bok strony</span>
+  <div class="nav">
+    <button class="b" id="prev">‹ Wstecz</button>
+    <span class="count" id="count">1 / 10</span>
+    <button class="b" id="next">Dalej ›</button>
+  </div>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  const dotsBox = document.getElementById("dots");
+  const count = document.getElementById("count");
+  const prev = document.getElementById("prev");
+  const next = document.getElementById("next");
+  let i = 0;
+
+  slides.forEach((_, k) => {
+    const d = document.createElement("button");
+    d.className = "dot" + (k === 0 ? " on" : "");
+    d.addEventListener("click", () => go(k));
+    dotsBox.appendChild(d);
+  });
+  const dots = [...dotsBox.children];
+
+  function go(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    dots.forEach((d, k) => d.classList.toggle("on", k === i));
+    count.textContent = (i + 1) + " / " + slides.length;
+    prev.disabled = i === 0;
+    next.disabled = i === slides.length - 1;
+  }
+  prev.addEventListener("click", () => go(i - 1));
+  next.addEventListener("click", () => go(i + 1));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); go(i + 1); }
+    if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    if (e.key === "Home") go(0);
+    if (e.key === "End") go(slides.length - 1);
+  });
+  // klik w lewą/prawą część ekranu (poza paskiem i przyciskami)
+  document.getElementById("deck").addEventListener("click", e => {
+    go(e.clientX < window.innerWidth / 2 ? i - 1 : i + 1);
+  });
+  go(0);
+</script>
+</body>
+</html>
