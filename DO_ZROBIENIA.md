@@ -36,3 +36,24 @@ Specyfikacja: `docs/superpowers/specs/2026-06-15-scheduler-auth-criteria-design.
 1. Uruchom `Oferty.vbs` (albo `python server.py`) i wejdź na `http://localhost:8000`.
 2. Przy pierwszym wejściu pojawi się ekran **„Utwórz konto"** — ustaw login i hasło.
 3. Po zalogowaniu skonfiguruj panele **Kryteria** i **Harmonogram**.
+
+## 🔒 Bezpieczeństwo — HTTP vs HTTPS
+Aplikacja działa po **HTTP**, ale serwer nasłuchuje wyłącznie na pętli zwrotnej
+(`ThreadingHTTPServer(("127.0.0.1", PORT), ...)` w `server.py`). Ruch **nie opuszcza
+komputera**, więc nie da się go podsłuchać z sieci — dla lokalnej, jednoosobowej
+aplikacji HTTP jest tu w porządku (HTTPS chroni dane *w drodze przez sieć*, a takiej
+drogi tu nie ma).
+
+Co już chroni dostęp:
+- hasło: pbkdf2-HMAC-SHA256, 200 000 iteracji, sól per-konto (w bazie tylko hash);
+- ciasteczko sesji: `HttpOnly` + `SameSite=Lax`, token = 32 losowe bajty;
+- brak flagi `Secure` jest **celowy** — wymagałaby HTTPS i zablokowała logowanie na `localhost`.
+
+⚠️ **Kiedy trzeba dodać HTTPS** — dopiero gdy aplikacja wyjdzie poza `localhost`:
+- zmiana bindowania na `0.0.0.0` lub udostępnienie w sieci/Wi-Fi,
+- port-forwarding / wystawienie na świat,
+- uruchamianie na **współdzielonym** komputerze (inny użytkownik OS może wejść na `127.0.0.1:8000`).
+
+Wtedy: postaw reverse-proxy z TLS (np. Caddy/nginx) i ustaw flagę `Secure` na ciasteczku.
+Świadomie pominięte (projekt do nauki, lokalnie): token CSRF (łagodzi `SameSite=Lax`),
+trwałość sesji (giną przy restarcie serwera — to cecha, nie luka).
