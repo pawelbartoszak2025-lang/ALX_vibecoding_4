@@ -13,7 +13,9 @@ import urllib.request, urllib.error
 API = "https://discord.com/api/v10"
 BASE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(BASE, "discord_config.json")
-DB = os.path.join(BASE, "otodom.db")
+# Na Vercelu zapisywać można tylko w /tmp (ulotnie); lokalnie obok skryptu.
+DB = os.environ.get("OTODOM_DB") or os.path.join(
+    "/tmp" if os.environ.get("VERCEL") else BASE, "otodom.db")
 CLAY = 0xB8462B  # kolor paska embedu
 
 
@@ -26,8 +28,15 @@ def slug(s):
 
 
 def load_config():
+    # Tryb chmury (np. Vercel): brak pliku konfiguracyjnego -> token z env.
     if not os.path.exists(CONFIG):
-        raise RuntimeError("Brak pliku discord_config.json.")
+        token = (os.environ.get("DISCORD_BOT_TOKEN")
+                 or os.environ.get("Discord_bot_token") or "").strip()
+        server_id = (os.environ.get("DISCORD_SERVER_ID") or "").strip()
+        if not token:
+            raise RuntimeError(
+                "Brak tokenu bota. Ustaw zmienną środowiskową DISCORD_BOT_TOKEN.")
+        return token, server_id
     with open(CONFIG, encoding="utf-8") as f:
         cfg = json.load(f)
     raw = (cfg.get("bot_token") or "").strip()

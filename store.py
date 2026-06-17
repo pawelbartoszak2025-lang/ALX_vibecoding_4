@@ -3,7 +3,9 @@
 import os, json, sqlite3
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DB = os.path.join(BASE, "otodom.db")
+# Na Vercelu zapisywać można tylko w /tmp (ulotnie); lokalnie obok skryptu.
+DB = os.environ.get("OTODOM_DB") or os.path.join(
+    "/tmp" if os.environ.get("VERCEL") else BASE, "otodom.db")
 
 ROOMS_MAP = {"ONE": "1", "TWO": "2", "THREE": "3", "FOUR": "4", "FIVE": "5",
              "SIX": "6", "SEVEN": "7", "EIGHT": "8", "NINE": "9", "TEN": "10",

@@ -1,0 +1,2 @@
+# Aplikacja używa wyłącznie biblioteki standardowej Pythona — brak zależności.
+# Plik obecny celowo: pomaga Vercelowi rozpoznać projekt jako Python.

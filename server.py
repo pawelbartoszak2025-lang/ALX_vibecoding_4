@@ -27,7 +27,9 @@ def _current_user(handler):
     return auth.session_user(_session_token(handler))
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DB = os.path.join(BASE, "otodom.db")
+# Na Vercelu zapisywać można tylko w /tmp (ulotnie); lokalnie obok skryptu.
+DB = os.environ.get("OTODOM_DB") or os.path.join(
+    "/tmp" if os.environ.get("VERCEL") else BASE, "otodom.db")
 HTML = os.path.join(BASE, "oferty.html")
 PORT = 8000
 PER_CITY = 10
@@ -184,7 +186,11 @@ class Handler(BaseHTTPRequestHandler):
             body = body.encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Set-Cookie", f"session={token}; Path=/; HttpOnly; SameSite=Lax")
+        # Na Vercelu (HTTPS) dokładamy flagę Secure; lokalnie (http://localhost) nie,
+        # bo zablokowałaby logowanie.
+        secure = "; Secure" if os.environ.get("VERCEL") else ""
+        self.send_header("Set-Cookie",
+                         f"session={token}; Path=/; HttpOnly; SameSite=Lax{secure}")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -288,7 +294,16 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/logout":
             auth.delete_session(_session_token(self))
-            self._send(200, json.dumps({"ok": True}))
+            # Sesja bezstanowa -> wylogowanie = wyczyszczenie ciasteczka (Max-Age=0).
+            body = json.dumps({"ok": True}).encode("utf-8")
+            secure = "; Secure" if os.environ.get("VERCEL") else ""
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Set-Cookie",
+                             f"session=; Path=/; HttpOnly; SameSite=Lax{secure}; Max-Age=0")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         # poniżej: tylko dla zalogowanych

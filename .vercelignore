@@ -1,0 +1,10 @@
+# Pliki niepotrzebne na serwerze (zmniejszają paczkę wysyłaną na Vercel).
+otodom_pages/
+__pycache__/
+*.pyc
+*.vbs
+*.docx
+tests/
+docs/
+discord_config.json
+otodom.db

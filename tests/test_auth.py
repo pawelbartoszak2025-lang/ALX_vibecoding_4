@@ -6,7 +6,6 @@ class AuthTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         auth.DB = os.path.join(self.tmp, "t.db")
-        auth.SESSIONS.clear()
 
     def test_hash_verify(self):
         h, s = auth.hash_password("tajne123")
@@ -24,11 +23,15 @@ class AuthTest(unittest.TestCase):
             auth.create_account("inny", "x")  # konto już istnieje
 
     def test_sessions(self):
+        # Sesja bezstanowa: poprawny token rozwiązuje się na użytkownika.
         t = auth.create_session("pawel")
         self.assertEqual(auth.session_user(t), "pawel")
-        auth.delete_session(t)
-        self.assertIsNone(auth.session_user(t))
+        # Token pusty/nieprawidłowy -> brak użytkownika.
         self.assertIsNone(auth.session_user("nieistnieje"))
+        self.assertIsNone(auth.session_user(None))
+        # Token z podmienionym podpisem -> odrzucony.
+        payload, _sig = t.rsplit(".", 1)
+        self.assertIsNone(auth.session_user(payload + ".zlypodpis"))
 
 if __name__ == "__main__":
     unittest.main()
