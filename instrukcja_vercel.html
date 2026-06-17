@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jak wrzucić stronę na Vercel — instrukcja krok po kroku</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  :root{
+    --paper:#f1ede2; --paper-2:#e9e2d2; --ink:#221d16; --ink-soft:#6f6657; --ink-faint:#a79c89;
+    --line:#ddd5c4; --line-strong:#cabda3; --clay:#b8462b; --clay-deep:#8c3219; --clay-tint:#f4e3da;
+    --olive:#5d6a38; --olive-tint:#ebeede; --gold:#9c7415; --gold-tint:#f3e9cd;
+    --pad:clamp(20px,5vw,72px);
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:var(--paper); color:var(--ink);
+        font-family:"Hanken Grotesk",system-ui,sans-serif; line-height:1.6; }
+  header{ padding:clamp(36px,6vw,68px) var(--pad) clamp(20px,3vw,30px); border-bottom:1.5px solid var(--ink); }
+  .eyebrow{ font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.26em;
+            text-transform:uppercase; color:var(--clay); margin-bottom:14px; }
+  h1{ font-family:"Fraunces",serif; font-weight:600; margin:0; font-size:clamp(34px,6vw,64px);
+      line-height:1.02; letter-spacing:-.02em; }
+  h1 em{ font-style:italic; font-weight:400; color:var(--clay); }
+  .lead{ margin:16px 0 0; color:var(--ink-soft); font-size:clamp(15px,1.6vw,18px); max-width:62ch; }
+
+  nav.toc{ position:sticky; top:0; z-index:5; background:rgba(241,237,226,.9);
+           backdrop-filter:blur(10px); border-bottom:1px solid var(--line-strong);
+           padding:12px var(--pad); display:flex; gap:18px; flex-wrap:wrap;
+           font-family:"JetBrains Mono",monospace; font-size:12px; }
+  nav.toc a{ color:var(--ink-soft); text-decoration:none; }
+  nav.toc a:hover{ color:var(--clay); }
+
+  main{ padding:0 var(--pad) 80px; }
+  section{ padding:clamp(30px,4vw,52px) 0; border-bottom:1px solid var(--line); max-width:86ch; }
+  h2{ font-family:"Fraunces",serif; font-weight:600; font-size:clamp(22px,3vw,32px);
+      margin:0 0 6px; letter-spacing:-.01em; }
+  h2 .num{ color:var(--ink-faint); font-size:.7em; margin-right:10px; }
+  h3{ font-family:"Fraunces",serif; font-weight:600; font-size:18px; margin:22px 0 4px; }
+  p{ margin:10px 0; color:#342e25; }
+  .muted{ color:var(--ink-soft); }
+  ul,ol{ margin:10px 0; padding-left:22px; }
+  li{ margin:6px 0; }
+  code{ font-family:"JetBrains Mono",monospace; font-size:.88em; color:var(--clay-deep);
+        background:var(--clay-tint); padding:2px 7px; border-radius:3px; }
+  .badge{ font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.1em;
+          text-transform:uppercase; padding:3px 9px; border-radius:3px; vertical-align:middle; margin-left:8px; }
+  .ok{ color:var(--olive); background:var(--olive-tint); border:1px solid #bcc497; }
+  .soon{ color:var(--gold); background:var(--gold-tint); border:1px solid #dcc787; }
+
+  .step{ background:var(--paper-2); border:1px solid var(--line-strong); border-radius:8px;
+         padding:18px 20px; margin:14px 0; }
+  .step b{ color:var(--clay-deep); }
+
+  .flow{ counter-reset:s; margin:18px 0; padding:0; list-style:none; }
+  .flow > li{ position:relative; padding:4px 0 22px 52px; }
+  .flow > li::before{ counter-increment:s; content:counter(s); position:absolute; left:0; top:0;
+        width:34px; height:34px; border-radius:50%; background:var(--clay); color:#fff;
+        font-family:"JetBrains Mono",monospace; font-weight:600; font-size:15px;
+        display:flex; align-items:center; justify-content:center; }
+  .flow > li::after{ content:""; position:absolute; left:16px; top:38px; bottom:0; width:1.5px; background:var(--line-strong); }
+  .flow > li:last-child::after{ display:none; }
+  .flow h3{ margin:4px 0 2px; }
+
+  pre{ background:#2a241c; color:#f1ede2; border-radius:8px; padding:14px 16px; overflow:auto;
+       font-family:"JetBrains Mono",monospace; font-size:13px; line-height:1.55; margin:12px 0; }
+  pre .cmt{ color:#a79c89; }
+
+  .note{ border-left:4px solid var(--gold); background:var(--gold-tint); padding:14px 18px;
+         border-radius:0 8px 8px 0; margin:16px 0; }
+  .warn{ border-left:4px solid var(--clay); background:var(--clay-tint); padding:14px 18px;
+         border-radius:0 8px 8px 0; margin:16px 0; }
+  .note b, .warn b{ color:var(--clay-deep); }
+
+  .pill{ display:inline-block; font-family:"JetBrains Mono",monospace; font-size:12px;
+         background:#fff; border:1px solid var(--line-strong); border-radius:999px; padding:3px 12px; margin:3px 4px 3px 0; }
+  footer{ padding:30px var(--pad) 60px; color:var(--ink-faint); font-family:"JetBrains Mono",monospace; font-size:12px; }
+  a.link{ color:var(--clay-deep); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Instrukcja · hosting · 2026</div>
+  <h1>Jak wrzucić stronę <em>na Vercel</em></h1>
+  <p class="lead">Prosto, krok po kroku — bez wiedzy technicznej. Na końcu Twoja strona
+  z ofertami będzie dostępna pod adresem w internecie, z którego skorzystasz na każdym komputerze i telefonie.</p>
+</header>
+
+<nav class="toc">
+  <a href="#czym">Czym jest Vercel</a>
+  <a href="#zanim">Zanim zaczniesz</a>
+  <a href="#github">1 · GitHub</a>
+  <a href="#import">2 · Import do Vercela</a>
+  <a href="#zmienne">3 · Hasła i tokeny</a>
+  <a href="#deploy">4 · Publikacja</a>
+  <a href="#uwagi">⚠ Ważne ograniczenia</a>
+  <a href="#zmiany">Aktualizacje</a>
+</nav>
+
+<main>
+
+<section id="czym">
+  <h2><span class="num">00</span>Czym właściwie jest Vercel?</h2>
+  <p>Vercel to firma, która <b>za darmo udostępnia w internecie</b> takie strony i aplikacje jak Twoja.
+  Wyobraź sobie, że Twój projekt leży teraz tylko na Twoim komputerze — Vercel bierze jego kopię
+  i stawia ją na swoim serwerze, dostępnym dla całego świata pod adresem typu
+  <code>twoja-nazwa.vercel.app</code>.</p>
+  <p>Nie musisz nic instalować ani znać się na serwerach. Cała sztuczka polega na połączeniu trzech rzeczy:</p>
+  <ul>
+    <li><b>Twój projekt</b> (folder na komputerze) — już go masz.</li>
+    <li><b>GitHub</b> — taki internetowy „dysk" na kod, z którego Vercel pobiera projekt.</li>
+    <li><b>Vercel</b> — bierze projekt z GitHuba i publikuje w sieci.</li>
+  </ul>
+  <p class="muted">Kolejność jest zawsze ta sama: komputer → GitHub → Vercel.</p>
+</section>
+
+<section id="zanim">
+  <h2><span class="num">01</span>Zanim zaczniesz — co przygotować</h2>
+  <div class="step">
+    <p><b>Załóż dwa darmowe konta</b> (jeśli jeszcze nie masz):</p>
+    <ul>
+      <li>Konto na <a class="link" href="https://github.com" target="_blank" rel="noopener">github.com</a></li>
+      <li>Konto na <a class="link" href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a>
+        — przy zakładaniu wybierz opcję <b>„Continue with GitHub"</b>, to połączy oba konta od razu.</li>
+    </ul>
+  </div>
+  <p>Dobra wiadomość: Twój projekt jest <b>już przygotowany</b> pod Vercel. Masz gotowe pliki
+  <code>vercel.json</code>, <code>requirements.txt</code> oraz <code>api/index.py</code> — to one mówią Vercelowi,
+  jak uruchomić stronę. Nie musisz ich ruszać.</p>
+</section>
+
+<section id="github">
+  <h2><span class="num">02</span>Krok 1 — wyślij projekt na GitHub</h2>
+  <p>Vercel nie czyta wprost z Twojego komputera — najpierw projekt musi trafić na GitHub.
+  Masz dwie drogi. Wybierz <b>łatwiejszą A</b>, chyba że wolisz pisać komendy.</p>
+
+  <h3>Droga A — bez komend (GitHub Desktop)</h3>
+  <ol class="flow">
+    <li>
+      <h3>Pobierz GitHub Desktop</h3>
+      <p>Wejdź na <a class="link" href="https://desktop.github.com" target="_blank" rel="noopener">desktop.github.com</a>,
+      zainstaluj i zaloguj się swoim kontem GitHub.</p>
+    </li>
+    <li>
+      <h3>Dodaj swój projekt</h3>
+      <p>W programie: <b>File → Add Local Repository</b> i wskaż folder
+      <code>ALX_vibecoding_4</code>. Program sam wykryje, że to projekt Git.</p>
+    </li>
+    <li>
+      <h3>Opublikuj</h3>
+      <p>Kliknij niebieski przycisk <b>„Publish repository"</b>.
+      Zostaw zaznaczone <b>„Keep this code private"</b> (kod prywatny — tak bezpieczniej).
+      Zatwierdź.</p>
+    </li>
+  </ol>
+
+  <h3>Droga B — przez komendy (PowerShell)</h3>
+  <p>Jeśli wolisz wpisać polecenia, otwórz PowerShell w folderze projektu i wykonaj kolejno
+  (najpierw załóż puste repozytorium na <a class="link" href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a>
+  i skopiuj jego adres):</p>
+  <pre><span class="cmt"># sprawdź, czy wszystko jest zapisane w Git</span>
+git status
+git add .
+git commit -m "publikacja na Vercel"
+
+<span class="cmt"># podłącz swoje repozytorium z GitHub (wklej swój adres)</span>
+git remote add origin https://github.com/TWOJ-LOGIN/otodom-oferty.git
+git branch -M master
+git push -u origin master</pre>
+  <p class="muted">Jeśli <code>git remote add origin</code> zgłosi, że „origin" już istnieje — pomiń tę
+  linię i od razu zrób <code>git push</code>.</p>
+
+  <div class="note"><b>Co zostaje na komputerze:</b> pliki <code>otodom.db</code> (baza) oraz
+  <code>discord_config.json</code> są celowo poza repozytorium (są w <code>.gitignore</code>) —
+  i dobrze, bo zawierają dane i sekrety. Nie wysyłaj ich ręcznie.</div>
+</section>
+
+<section id="import">
+  <h2><span class="num">03</span>Krok 2 — zaimportuj projekt do Vercela</h2>
+  <ol class="flow">
+    <li>
+      <h3>Wejdź do panelu Vercel</h3>
+      <p>Zaloguj się na <a class="link" href="https://vercel.com/new" target="_blank" rel="noopener">vercel.com/new</a>.</p>
+    </li>
+    <li>
+      <h3>Wybierz swoje repozytorium</h3>
+      <p>Zobaczysz listę projektów z GitHuba. Znajdź ten z ofertami i kliknij <b>„Import"</b>.
+      Jeśli go nie widać — kliknij <b>„Adjust GitHub App Permissions"</b> i daj Vercelowi dostęp do tego repozytorium.</p>
+    </li>
+    <li>
+      <h3>Nie zmieniaj ustawień budowania</h3>
+      <p>Vercel sam rozpozna projekt Python dzięki plikom, które już masz. Pola
+      <span class="pill">Framework Preset</span> <span class="pill">Build Command</span>
+      zostaw tak, jak są — domyślnie.</p>
+    </li>
+  </ol>
+  <p class="muted">Zanim klikniesz finalny „Deploy", zrób jeszcze krok 3 poniżej (zmienne) — to ważne.</p>
+</section>
+
+<section id="zmienne">
+  <h2><span class="num">04</span>Krok 3 — dodaj hasła i token (zmienne środowiskowe)</h2>
+  <p>Twój projekt korzysta z <b>tokenu bota Discord</b>, którego nie ma w kodzie (i bardzo dobrze).
+  Trzeba go podać Vercelowi osobno, w bezpiecznym miejscu.</p>
+  <div class="step">
+    <p>Na ekranie importu rozwiń sekcję <b>„Environment Variables"</b> i dodaj:</p>
+    <ul>
+      <li><b>Name (nazwa):</b> <code>Discord_bot_token</code></li>
+      <li><b>Value (wartość):</b> Twój token bota z Discorda</li>
+    </ul>
+    <p class="muted">Jeśli pominąłeś ten krok przy imporcie — dodasz to później w
+    <b>Settings → Environment Variables</b> w panelu projektu.</p>
+  </div>
+  <div class="warn"><b>Nigdy</b> nie wklejaj tokenu do kodu ani nie wysyłaj go na GitHub.
+  Zmienne środowiskowe są właśnie po to, żeby trzymać sekrety osobno.</div>
+</section>
+
+<section id="deploy">
+  <h2><span class="num">05</span>Krok 4 — opublikuj <span class="badge ok">finał</span></h2>
+  <ol class="flow">
+    <li>
+      <h3>Kliknij „Deploy"</h3>
+      <p>Vercel zacznie budować stronę. Potrwa to zwykle <b>kilkadziesiąt sekund</b>.</p>
+    </li>
+    <li>
+      <h3>Poczekaj na „Congratulations"</h3>
+      <p>Gdy zobaczysz gratulacje i zrzut ekranu Twojej strony — gotowe.</p>
+    </li>
+    <li>
+      <h3>Otwórz swój adres</h3>
+      <p>Kliknij <b>„Visit"</b> albo wejdź na <code>twoja-nazwa.vercel.app</code>.
+      Strona działa w internecie!</p>
+    </li>
+  </ol>
+</section>
+
+<section id="uwagi">
+  <h2><span class="num">06</span>⚠ Ważne — co zadziała, a co nie</h2>
+  <p>Muszę być z Tobą szczery: ten projekt powstał jako aplikacja <b>lokalna</b> (działająca na Twoim
+  komputerze). Vercel świetnie nadaje się do <b>pokazania strony</b>, ale ma inny sposób działania,
+  więc niektóre funkcje nie zadziałają tak samo. Po ludzku:</p>
+
+  <h3>✅ Zadziała</h3>
+  <ul>
+    <li>Wyświetlanie samej strony i jej wyglądu (lista ofert, panele, układ).</li>
+    <li>Strona będzie dostępna z każdego urządzenia, pod stałym adresem.</li>
+  </ul>
+
+  <h3 style="color:var(--clay-deep)">⚠ Może nie działać tak, jak na komputerze</h3>
+  <ul>
+    <li><b>Zapamiętywanie danych (baza <code>otodom.db</code>).</b> Vercel po każdym uruchomieniu
+      „zapomina" zapisane pliki — to tzw. serwer ulotny. Oferty, konta i ustawienia <b>nie zostaną
+      trwale zapisane</b>. Lokalnie działa, bo plik bazy leży na Twoim dysku.</li>
+    <li><b>Harmonogram (automatyczne pobieranie co 10–15 min).</b> Na Vercelu nie ma „programu w tle",
+      który chodzi cały czas — strona budzi się tylko, gdy ktoś ją odwiedzi. Automat się nie uruchomi.</li>
+    <li><b>Bot Discord.</b> Bot musi działać non-stop, a Vercel tego nie zapewnia. Bota najlepiej
+      zostawić uruchamianego z Twojego komputera (przez <code>Oferty.vbs</code>).</li>
+  </ul>
+
+  <div class="note"><b>Wniosek prostym językiem:</b> Vercel idealnie nada się do
+  <b>pokazania komuś</b>, jak strona wygląda i działa „na żywo". Jeśli natomiast potrzebujesz
+  trwałej bazy i automatycznego pobierania ofert 24/7 — albo zostaw to na swoim komputerze,
+  albo przejdź na hosting z prawdziwym, ciągle działającym serwerem (np. Railway, Render, mały VPS).
+  Chętnie pomogę wybrać i ustawić, jeśli zechcesz iść tą drogą.</div>
+</section>
+
+<section id="zmiany">
+  <h2><span class="num">07</span>Jak później wprowadzać zmiany?</h2>
+  <p>Najlepsze w tym układzie: <b>nie musisz nic robić ręcznie na Vercelu</b>. Wystarczy, że
+  wyślesz zmiany na GitHub, a Vercel sam zauważy i zaktualizuje stronę.</p>
+  <pre>git add .
+git commit -m "opis zmiany"
+git push</pre>
+  <p class="muted">Albo w GitHub Desktop: wpisz krótki opis na dole, kliknij <b>„Commit"</b>, potem
+  <b>„Push origin"</b>. Po chwili nowa wersja jest w internecie.</p>
+</section>
+
+</main>
+
+<footer>
+  Instrukcja dla projektu „Oferty Otodom" · otwórz ten plik podwójnym kliknięciem w przeglądarce.
+</footer>
+
+</body>
+</html>
