@@ -349,6 +349,11 @@ class Handler(BaseHTTPRequestHandler):
         pass  # ciszej — własne logi w do_GET
 
 
+# Punkt wejścia dla Vercela: szuka w server.py nazwy `handler`
+# (BaseHTTPRequestHandler). Lokalnie nieużywane — tam działa blok poniżej.
+handler = Handler
+
+
 if __name__ == "__main__":
     url = f"http://localhost:{PORT}"
     try:
