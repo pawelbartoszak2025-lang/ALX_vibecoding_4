@@ -83,5 +83,57 @@ class StoreSupabaseSettingsTest(unittest.TestCase):
         self.assertEqual(row["key"], "criteria")
         self.assertEqual(json.loads(row["value"])["price_max"], 500000)
 
+class StoreSupabaseOffersTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = []
+        self.upserts = []
+        self._orig = _store_mod.db
+        outer = self
+        class FakeDb:
+            @staticmethod
+            def enabled():
+                return True
+            @staticmethod
+            def select(table, columns="*", order=None, filters=None):
+                outer.last_order = order
+                return list(outer.rows)
+            @staticmethod
+            def upsert(table, rows, on_conflict, ignore_duplicates=False):
+                outer.upserts.append({"table": table, "rows": rows,
+                                      "on_conflict": on_conflict})
+        _store_mod.db = FakeDb
+
+    def tearDown(self):
+        _store_mod.db = self._orig
+
+    def test_save_offers_upserts_on_otodom_id(self):
+        n = _store_mod.save_offers([{
+            "miasto": "Poznań", "otodom_id": 7, "title": "M",
+            "price": 100, "currency": "PLN", "ppm": 5, "area": 20,
+            "rooms": 2, "private": True, "location": "X, wielkopolskie",
+            "url": "http://u"}])
+        self.assertEqual(n, 1)
+        up = self.upserts[0]
+        self.assertEqual(up["table"], "oferty")
+        self.assertEqual(up["on_conflict"], "otodom_id")
+        row = up["rows"][0]
+        self.assertEqual(row["otodom_id"], 7)
+        self.assertEqual(row["is_private_owner"], True)
+        self.assertEqual(row["rooms"], "2")
+
+    def test_read_offers_uses_order_and_maps_fields(self):
+        self.rows = [{
+            "miasto_wyszukiwania": "Poznań", "title": "M", "price": 100,
+            "currency": "PLN", "price_per_m2": 5, "area_m2": 20,
+            "rooms": "THREE", "is_private_owner": True,
+            "location": "Ul. X, Poznań, wielkopolskie", "url": "http://u"}]
+        out = _store_mod.read_offers()
+        self.assertEqual(self.last_order,
+                         "miasto_wyszukiwania.asc,price.asc.nullslast")
+        self.assertEqual(out[0]["miasto"], "Poznań")
+        self.assertEqual(out[0]["wojewodztwo"], "wielkopolskie")
+        self.assertEqual(out[0]["rooms"], "3")  # ROOMS_MAP THREE -> 3
+        self.assertIs(out[0]["private"], True)
+
 if __name__ == "__main__":
     unittest.main()

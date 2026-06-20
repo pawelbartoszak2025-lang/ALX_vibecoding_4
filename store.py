@@ -63,7 +63,33 @@ def save_settings(key, data):
     return merged
 
 
+def _row_to_offer(r):
+    """Mapuje wiersz (SQLite Row lub dict z Supabase) na słownik oferty."""
+    loc = r["location"] or ""
+    woj = loc.split(",")[-1].strip() if "," in loc else ""
+    raw_rooms = r["rooms"]
+    rooms = ROOMS_MAP.get(raw_rooms, raw_rooms) if raw_rooms else None
+    return {
+        "miasto": r["miasto_wyszukiwania"], "wojewodztwo": woj,
+        "title": r["title"], "price": r["price"], "currency": r["currency"] or "PLN",
+        "ppm": r["price_per_m2"], "area": r["area_m2"], "rooms": rooms,
+        "private": bool(r["is_private_owner"]), "location": loc, "url": r["url"],
+    }
+
+
 def save_offers(offers):
+    if db.enabled():
+        rows = [{
+            "miasto_wyszukiwania": o.get("miasto"), "otodom_id": o.get("otodom_id"),
+            "title": o.get("title"), "price": o.get("price"),
+            "currency": o.get("currency") or "PLN", "price_per_m2": o.get("ppm"),
+            "area_m2": o.get("area"),
+            "rooms": str(o.get("rooms")) if o.get("rooms") is not None else None,
+            "floor": None, "is_private_owner": bool(o.get("private")),
+            "location": o.get("location"), "url": o.get("url"),
+        } for o in offers]
+        db.upsert("oferty", rows, on_conflict="otodom_id")
+        return len(rows)
     con = _con()
     n = 0
     for o in offers:
@@ -82,22 +108,16 @@ def save_offers(offers):
 
 
 def read_offers():
+    if db.enabled():
+        rows = db.select("oferty",
+            columns="miasto_wyszukiwania,title,price,currency,price_per_m2,"
+                    "area_m2,rooms,is_private_owner,location,url",
+            order="miasto_wyszukiwania.asc,price.asc.nullslast")
+        return [_row_to_offer(r) for r in rows]
     con = _con()
     con.row_factory = sqlite3.Row
     rows = con.execute("""SELECT miasto_wyszukiwania, title, price, currency,
         price_per_m2, area_m2, rooms, is_private_owner, location, url
         FROM oferty ORDER BY miasto_wyszukiwania, price IS NULL, price""").fetchall()
     con.close()
-    out = []
-    for r in rows:
-        loc = r["location"] or ""
-        woj = loc.split(",")[-1].strip() if "," in loc else ""
-        raw_rooms = r["rooms"]
-        rooms = ROOMS_MAP.get(raw_rooms, raw_rooms) if raw_rooms else None
-        out.append({
-            "miasto": r["miasto_wyszukiwania"], "wojewodztwo": woj,
-            "title": r["title"], "price": r["price"], "currency": r["currency"] or "PLN",
-            "ppm": r["price_per_m2"], "area": r["area_m2"], "rooms": rooms,
-            "private": bool(r["is_private_owner"]), "location": loc, "url": r["url"],
-        })
-    return out
+    return [_row_to_offer(r) for r in rows]
