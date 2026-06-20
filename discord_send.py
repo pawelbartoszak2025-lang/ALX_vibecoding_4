@@ -144,6 +144,13 @@ def _money(n):
     return f"{int(n):,}".replace(",", " ")
 
 
+def _valid_url(u):
+    """Czy link nadaje się do pola url w embedzie Discord (http(s):// + host z kropką).
+    Discord odrzuca całą wiadomość, gdy url jest pusty/niepoprawny — więc taki
+    po prostu pomijamy (oferta wyśle się bez klikalnego linku)."""
+    return bool(isinstance(u, str) and re.match(r"^https?://[^\s]+\.[^\s]+", u.strip()))
+
+
 def offer_embed(o):
     line = []
     if o.get("price") is not None:
@@ -159,12 +166,15 @@ def offer_embed(o):
         desc += f"\n{_money(o['ppm'])} {o.get('currency') or 'PLN'}/m²"
     if o.get("location"):
         desc += f"\n📍 {o['location']}"
-    return {
+    embed = {
         "title": (o.get("title") or "Oferta")[:250],
-        "url": o.get("url"),
         "description": desc[:4000],
         "color": CLAY,
     }
+    # Link dodajemy tylko gdy poprawny — inaczej Discord odrzuca całą wiadomość.
+    if _valid_url(o.get("url")):
+        embed["url"] = o["url"]
+    return embed
 
 
 def post_offers(token, channel_id, offers):

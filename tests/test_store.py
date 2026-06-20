@@ -40,6 +40,9 @@ import store as _store_mod
 
 class StoreSupabaseSettingsTest(unittest.TestCase):
     def setUp(self):
+        # Izolacja: nawet gdyby zadziałała gałąź SQLite, ma trafić do tymczasowej
+        # bazy, nigdy do prawdziwej otodom.db.
+        _store_mod.DB = os.path.join(tempfile.mkdtemp(), "t.db")
         self.rows = []
         self.upserts = []
         store_mod = _store_mod
@@ -85,6 +88,8 @@ class StoreSupabaseSettingsTest(unittest.TestCase):
 
 class StoreSupabaseOffersTest(unittest.TestCase):
     def setUp(self):
+        # Izolacja: gałąź SQLite (gdyby zadziałała) ma trafić do tymczasowej bazy.
+        _store_mod.DB = os.path.join(tempfile.mkdtemp(), "t.db")
         self.rows = []
         self.upserts = []
         self._orig = _store_mod.db
