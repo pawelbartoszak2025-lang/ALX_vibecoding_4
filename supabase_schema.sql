@@ -29,3 +29,10 @@ create table if not exists discord_sent (
     sent_at timestamptz default now(),
     unique (miasto, url)
 );
+
+-- Bezpieczeństwo: włącz RLS na wszystkich tabelach. Aplikacja łączy się kluczem
+-- service_role (po stronie serwera), który RLS omija, więc działa normalnie.
+-- Brak policy = publiczny klucz anon nie ma dostępu do tych tabel.
+alter table oferty       enable row level security;
+alter table app_settings enable row level security;
+alter table discord_sent enable row level security;
