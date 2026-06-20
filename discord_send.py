@@ -9,6 +9,7 @@ Logika:
 """
 import os, re, json, time, sqlite3, unicodedata
 import urllib.request, urllib.error
+import db
 
 API = "https://discord.com/api/v10"
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -103,10 +104,16 @@ def _ensure_table(con):
 
 
 def filter_new(miasto, offers):
-    con = sqlite3.connect(DB)
-    _ensure_table(con)
-    sent = {r[0] for r in con.execute("SELECT url FROM discord_sent WHERE miasto=?", (miasto,))}
-    con.close()
+    if db.enabled():
+        rows = db.select("discord_sent", columns="url",
+                         filters={"miasto": "eq." + miasto})
+        sent = {r["url"] for r in rows}
+    else:
+        con = sqlite3.connect(DB)
+        _ensure_table(con)
+        sent = {r[0] for r in con.execute(
+            "SELECT url FROM discord_sent WHERE miasto=?", (miasto,))}
+        con.close()
     seen, new = set(), []
     for o in offers:
         u = o.get("url")
@@ -117,9 +124,15 @@ def filter_new(miasto, offers):
 
 
 def mark_sent(miasto, offers):
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    if db.enabled():
+        rows = [{"miasto": miasto, "url": o.get("url"), "sent_at": ts}
+                for o in offers if o.get("url")]
+        db.upsert("discord_sent", rows, on_conflict="miasto,url",
+                  ignore_duplicates=True)
+        return
     con = sqlite3.connect(DB)
     _ensure_table(con)
-    ts = time.strftime("%Y-%m-%d %H:%M:%S")
     for o in offers:
         con.execute("INSERT OR IGNORE INTO discord_sent (miasto, url, sent_at) VALUES (?,?,?)",
                     (miasto, o.get("url"), ts))

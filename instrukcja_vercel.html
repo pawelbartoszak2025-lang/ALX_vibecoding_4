@@ -93,6 +93,7 @@
   <a href="#github">1 · GitHub</a>
   <a href="#import">2 · Import do Vercela</a>
   <a href="#zmienne">3 · Hasła i tokeny</a>
+  <a href="#supabase">3b · Trwałe dane (Supabase)</a>
   <a href="#deploy">4 · Publikacja</a>
   <a href="#uwagi">⚠ Ważne ograniczenia</a>
   <a href="#zmiany">Aktualizacje</a>
@@ -213,6 +214,55 @@ git push -u origin master</pre>
   </div>
   <div class="warn"><b>Nigdy</b> nie wklejaj tokenu do kodu ani nie wysyłaj go na GitHub.
   Zmienne środowiskowe są właśnie po to, żeby trzymać sekrety osobno.</div>
+</section>
+
+<section id="supabase">
+  <h2><span class="num">04b</span>Krok 3b — trwałe dane (Supabase) <span class="badge soon">opcjonalne</span></h2>
+  <p>Domyślnie Vercel <b>nie zapisuje danych trwale</b> między uruchomieniami (serwer ulotny).
+  Jeśli chcesz, żeby oferty, kryteria, harmonogram i pamięć Discord <b>przetrwały redeployment</b>,
+  podłącz darmową bazę danych <b>Supabase</b>. To jednorazowa konfiguracja.</p>
+
+  <ol class="flow">
+    <li>
+      <h3>Utwórz schemat bazy w Supabase</h3>
+      <p>Zaloguj się na <a class="link" href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>,
+      wejdź do swojego projektu, a następnie:<br>
+      <b>SQL Editor → New query</b> — wklej całą zawartość pliku <code>supabase_schema.sql</code>
+      (znajdziesz go w folderze projektu) i kliknij <b>„Run"</b>.
+      Wystarczy zrobić to <b>raz</b> — zostaną utworzone tabele <code>oferty</code>,
+      <code>app_settings</code> i <code>discord_sent</code>.</p>
+    </li>
+    <li>
+      <h3>Skopiuj adres projektu i klucz API</h3>
+      <p>W panelu Supabase przejdź do <b>Project Settings → API</b>. Znajdziesz tam dwie wartości,
+      które zaraz wkleisz do Vercela:</p>
+      <ul>
+        <li><b>Project URL</b> — adres wyglądający jak <code>https://xxxx.supabase.co</code></li>
+        <li><b>service_role</b> (sekcja „Project API keys") — długi klucz zaczynający się od <code>eyJ…</code></li>
+      </ul>
+    </li>
+    <li>
+      <h3>Dodaj zmienne środowiskowe na Vercelu</h3>
+      <p>W panelu Vercela wejdź do <b>Project Settings → Environment Variables</b> i dodaj dwie pozycje:</p>
+      <div class="step">
+        <ul>
+          <li><b>Name:</b> <code>SUPABASE_URL</code> &nbsp;·&nbsp; <b>Value:</b> skopiowany Project URL</li>
+          <li><b>Name:</b> <code>SUPABASE_KEY</code> &nbsp;·&nbsp; <b>Value:</b> skopiowany klucz service_role</li>
+        </ul>
+      </div>
+    </li>
+    <li>
+      <h3>Zrób Redeploy</h3>
+      <p>Wejdź w zakładkę <b>Deployments</b>, kliknij „···" przy ostatnim wdrożeniu i wybierz
+      <b>„Redeploy"</b>. Od tej chwili oferty, kryteria, ustawienia harmonogramu i lista
+      wysłanych wiadomości Discord są <b>trwale przechowywane</b> w Supabase — przetrwają
+      każde kolejne wdrożenie.</p>
+    </li>
+  </ol>
+
+  <div class="warn"><b>Ważne — klucz service_role to sekret.</b> Daje pełny dostęp do bazy
+  z pominięciem zasad bezpieczeństwa. Trzymaj go <b>wyłącznie</b> w zmiennych środowiskowych
+  Vercela — nigdy nie wklejaj go do kodu ani nie wysyłaj na GitHub.</div>
 </section>
 
 <section id="deploy">

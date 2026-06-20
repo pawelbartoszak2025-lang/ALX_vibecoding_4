@@ -26,11 +26,25 @@ Data: 2026-06-16
   i ręczne „Pobierz" zapisują do bazy, strona czyta z bazy.
 
 ## 🧪 Testy
-- `python -m unittest discover -s tests -v` — 10 testów (store, auth, scheduler).
+- `python -m unittest discover -s tests -v` — 31 testów (store, auth, scheduler, db, store-supabase, discord).
 - `node tests/criteria.test.mjs` — test logiki dopasowania kryteriów.
 
 Plan wdrożenia: `docs/superpowers/plans/2026-06-15-scheduler-auth-criteria.md`
 Specyfikacja: `docs/superpowers/specs/2026-06-15-scheduler-auth-criteria-design.md`
+
+## ☁️ Baza danych w chmurze (Supabase)
+
+Kod obsługuje dwa tryby przechowywania danych:
+
+- **Lokalnie** (na komputerze): dane trafiają do SQLite (`otodom.db`) — tak jak dotychczas.
+- **W chmurze** (Vercel): gdy ustawione są zmienne środowiskowe `SUPABASE_URL` i `SUPABASE_KEY`,
+  dane trafiają do Supabase (PostgreSQL przez REST API). Bez tych zmiennych aplikacja
+  automatycznie wraca do SQLite.
+
+Konfiguracja opisana jest w `instrukcja_vercel.html` (sekcja „Trwałe dane — Supabase").
+
+**TODO — automatyczny harmonogram w chmurze:** na Vercelu wątek w tle nie działa (serwer ulotny).
+Automatyczne pobieranie ofert co 10–15 min wymaga **Vercel Cron** — do zrobienia osobno.
 
 ## ▶️ Pierwsze uruchomienie po zmianach
 1. Uruchom `Oferty.vbs` (albo `python server.py`) i wejdź na `http://localhost:8000`.

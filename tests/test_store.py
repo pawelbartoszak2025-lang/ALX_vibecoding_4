@@ -36,5 +36,110 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(o["rooms"], "2")
         self.assertEqual(o["miasto"], "Poznań")
 
+import store as _store_mod
+
+class StoreSupabaseSettingsTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = []
+        self.upserts = []
+        store_mod = _store_mod
+        self._orig = store_mod.db
+        class FakeDb:
+            @staticmethod
+            def enabled():
+                return True
+            @staticmethod
+            def select(table, columns="*", order=None, filters=None):
+                return list(self.rows)
+            @staticmethod
+            def upsert(table, rows, on_conflict, ignore_duplicates=False):
+                self.upserts.append({"table": table, "rows": rows,
+                                     "on_conflict": on_conflict})
+        store_mod.db = FakeDb
+
+    def tearDown(self):
+        _store_mod.db = self._orig
+
+    def test_get_settings_merges_defaults(self):
+        import json
+        self.rows = [{"value": json.dumps({"interval_min": 30})}]
+        cfg = _store_mod.get_settings("scheduler")
+        self.assertEqual(cfg["interval_min"], 30)
+        self.assertIn("cities", cfg)  # z DEFAULTS
+
+    def test_get_settings_empty_returns_defaults(self):
+        self.rows = []
+        cfg = _store_mod.get_settings("criteria")
+        self.assertEqual(cfg, _store_mod.DEFAULTS["criteria"])
+
+    def test_save_settings_upserts_with_key_conflict(self):
+        import json
+        self._save = _store_mod.save_settings("criteria", {"price_max": 500000})
+        self.assertEqual(len(self.upserts), 1)
+        up = self.upserts[0]
+        self.assertEqual(up["table"], "app_settings")
+        self.assertEqual(up["on_conflict"], "key")
+        row = up["rows"][0]
+        self.assertEqual(row["key"], "criteria")
+        self.assertEqual(json.loads(row["value"])["price_max"], 500000)
+
+class StoreSupabaseOffersTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = []
+        self.upserts = []
+        self._orig = _store_mod.db
+        outer = self
+        class FakeDb:
+            @staticmethod
+            def enabled():
+                return True
+            @staticmethod
+            def select(table, columns="*", order=None, filters=None):
+                outer.last_order = order
+                return list(outer.rows)
+            @staticmethod
+            def upsert(table, rows, on_conflict, ignore_duplicates=False):
+                outer.upserts.append({"table": table, "rows": rows,
+                                      "on_conflict": on_conflict})
+        _store_mod.db = FakeDb
+
+    def tearDown(self):
+        _store_mod.db = self._orig
+
+    def test_save_offers_upserts_on_otodom_id(self):
+        n = _store_mod.save_offers([{
+            "miasto": "Poznań", "otodom_id": 7, "title": "M",
+            "price": 100, "currency": "PLN", "ppm": 5, "area": 20,
+            "rooms": 2, "private": True, "location": "X, wielkopolskie",
+            "url": "http://u"}])
+        self.assertEqual(n, 1)
+        up = self.upserts[0]
+        self.assertEqual(up["table"], "oferty")
+        self.assertEqual(up["on_conflict"], "otodom_id")
+        row = up["rows"][0]
+        self.assertEqual(row["otodom_id"], 7)
+        self.assertEqual(row["is_private_owner"], True)
+        self.assertEqual(row["rooms"], "2")
+
+    def test_read_offers_uses_order_and_maps_fields(self):
+        # Supabase/PostgREST zwraca kolumny numeric jako teksty — symulujemy to
+        self.rows = [{
+            "miasto_wyszukiwania": "Poznań", "title": "M", "price": "100",
+            "currency": "PLN", "price_per_m2": "5", "area_m2": "20",
+            "rooms": "THREE", "is_private_owner": True,
+            "location": "Ul. X, Poznań, wielkopolskie", "url": "http://u"}]
+        out = _store_mod.read_offers()
+        self.assertEqual(self.last_order,
+                         "miasto_wyszukiwania.asc,price.asc.nullslast")
+        self.assertEqual(out[0]["miasto"], "Poznań")
+        self.assertEqual(out[0]["wojewodztwo"], "wielkopolskie")
+        self.assertEqual(out[0]["rooms"], "3")  # ROOMS_MAP THREE -> 3
+        self.assertIs(out[0]["private"], True)
+        # Wartości numeryczne muszą być float (nie string) po ujednoliceniu
+        self.assertEqual(out[0]["price"], 100.0)
+        self.assertIsInstance(out[0]["price"], float)
+        self.assertEqual(out[0]["ppm"], 5.0)
+        self.assertEqual(out[0]["area"], 20.0)
+
 if __name__ == "__main__":
     unittest.main()
