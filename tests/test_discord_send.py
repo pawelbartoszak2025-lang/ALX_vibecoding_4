@@ -41,5 +41,23 @@ class DiscordSupabaseTest(unittest.TestCase):
         self.assertEqual(up["rows"][0]["miasto"], "Poznań")
         self.assertEqual(up["rows"][0]["url"], "http://b")
 
+class OfferEmbedUrlTest(unittest.TestCase):
+    def test_valid_url_included(self):
+        e = ds.offer_embed({"title": "M", "url": "https://www.otodom.pl/pl/oferta/x-ID1"})
+        self.assertEqual(e["url"], "https://www.otodom.pl/pl/oferta/x-ID1")
+
+    def test_invalid_url_omitted(self):
+        # 'http://u' (host bez kropki) Discord odrzuca jako zły URL -> pomijamy
+        e = ds.offer_embed({"title": "M", "url": "http://u"})
+        self.assertNotIn("url", e)
+
+    def test_missing_url_omitted(self):
+        for bad in (None, "", "otodom.pl/oferta/x"):
+            e = ds.offer_embed({"title": "M", "url": bad})
+            self.assertNotIn("url", e)
+        # embed nadal poprawny mimo braku linku
+        self.assertEqual(e["title"], "M")
+
+
 if __name__ == "__main__":
     unittest.main()
