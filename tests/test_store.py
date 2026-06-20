@@ -122,9 +122,10 @@ class StoreSupabaseOffersTest(unittest.TestCase):
         self.assertEqual(row["rooms"], "2")
 
     def test_read_offers_uses_order_and_maps_fields(self):
+        # Supabase/PostgREST zwraca kolumny numeric jako teksty — symulujemy to
         self.rows = [{
-            "miasto_wyszukiwania": "Poznań", "title": "M", "price": 100,
-            "currency": "PLN", "price_per_m2": 5, "area_m2": 20,
+            "miasto_wyszukiwania": "Poznań", "title": "M", "price": "100",
+            "currency": "PLN", "price_per_m2": "5", "area_m2": "20",
             "rooms": "THREE", "is_private_owner": True,
             "location": "Ul. X, Poznań, wielkopolskie", "url": "http://u"}]
         out = _store_mod.read_offers()
@@ -134,6 +135,11 @@ class StoreSupabaseOffersTest(unittest.TestCase):
         self.assertEqual(out[0]["wojewodztwo"], "wielkopolskie")
         self.assertEqual(out[0]["rooms"], "3")  # ROOMS_MAP THREE -> 3
         self.assertIs(out[0]["private"], True)
+        # Wartości numeryczne muszą być float (nie string) po ujednoliceniu
+        self.assertEqual(out[0]["price"], 100.0)
+        self.assertIsInstance(out[0]["price"], float)
+        self.assertEqual(out[0]["ppm"], 5.0)
+        self.assertEqual(out[0]["area"], 20.0)
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,17 @@ ROOMS_MAP = {"ONE": "1", "TWO": "2", "THREE": "3", "FOUR": "4", "FIVE": "5",
              "SIX": "6", "SEVEN": "7", "EIGHT": "8", "NINE": "9", "TEN": "10",
              "MORE": "10+"}
 
+def _num(v):
+    """Liczba zmiennoprzecinkowa lub None. Supabase (PostgREST) zwraca kolumny
+    numeric jako tekst (np. "100"), więc ujednolicamy typ jak w SQLite."""
+    if v is None or v == "":
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 DEFAULTS = {
     "scheduler": {"enabled": False, "interval_min": 15, "cities": ["Poznań"],
                   "discord_autosend": False, "last_run": None, "last_error": None},
@@ -71,8 +82,8 @@ def _row_to_offer(r):
     rooms = ROOMS_MAP.get(raw_rooms, raw_rooms) if raw_rooms else None
     return {
         "miasto": r["miasto_wyszukiwania"], "wojewodztwo": woj,
-        "title": r["title"], "price": r["price"], "currency": r["currency"] or "PLN",
-        "ppm": r["price_per_m2"], "area": r["area_m2"], "rooms": rooms,
+        "title": r["title"], "price": _num(r["price"]), "currency": r["currency"] or "PLN",
+        "ppm": _num(r["price_per_m2"]), "area": _num(r["area_m2"]), "rooms": rooms,
         "private": bool(r["is_private_owner"]), "location": loc, "url": r["url"],
     }
 

@@ -1,6 +1,6 @@
 # tests/test_db.py
 # -*- coding: utf-8 -*-
-import os, unittest
+import os, io, contextlib, unittest
 
 class DbHelpersTest(unittest.TestCase):
     def setUp(self):
@@ -66,6 +66,35 @@ class DbHelpersTest(unittest.TestCase):
     def test_build_query_empty(self):
         db = self._reload()
         self.assertEqual(db._build_query({}), "")
+
+class DbPartialConfigWarningTest(unittest.TestCase):
+    """Sprawdza, że ustawienie tylko jednej ze zmiennych wywołuje ostrzeżenie."""
+
+    def setUp(self):
+        self._old = {k: os.environ.get(k) for k in ("SUPABASE_URL", "SUPABASE_KEY")}
+        for k in ("SUPABASE_URL", "SUPABASE_KEY"):
+            os.environ.pop(k, None)
+
+    def tearDown(self):
+        for k, v in self._old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def _reload(self):
+        import importlib, db
+        return importlib.reload(db)
+
+    def test_partial_config_warns_on_stderr(self):
+        os.environ["SUPABASE_URL"] = "https://x.supabase.co"
+        # SUPABASE_KEY celowo nie ustawiona
+        db = self._reload()
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            result = db.enabled()
+        self.assertFalse(result)
+        self.assertIn("SUPABASE_URL", buf.getvalue())
 
 class DbRequestTest(unittest.TestCase):
     def setUp(self):

@@ -5,7 +5,9 @@
 Włącza się tylko gdy ustawione są zmienne SUPABASE_URL i SUPABASE_KEY
 (na Vercelu). Lokalnie pozostają puste, więc warstwa danych używa SQLite.
 """
-import os, json, urllib.parse, urllib.request, urllib.error
+import os, sys, json, urllib.parse, urllib.request, urllib.error
+
+_warned_partial = False
 
 
 def _url():
@@ -17,7 +19,16 @@ def _key():
 
 
 def enabled():
-    return bool(_url() and _key())
+    global _warned_partial
+    u, k = _url(), _key()
+    if bool(u) != bool(k):  # dokładnie jedna ustawiona
+        if not _warned_partial:
+            print("Ostrzeżenie: ustawiono tylko jedną ze zmiennych "
+                  "SUPABASE_URL/SUPABASE_KEY — używam lokalnego SQLite. "
+                  "Ustaw obie, aby włączyć Supabase.", file=sys.stderr)
+            _warned_partial = True
+        return False
+    return bool(u and k)
 
 
 def _base_url():
@@ -38,7 +49,7 @@ def _headers(prefer=None):
 def _build_query(params):
     if not params:
         return ""
-    # quote_via=quote_plus koduje spacje jako '+'; wartości typu 'eq.x' zachowane.
+    # quote_via=urllib.parse.quote koduje spacje jako %20 i zachowuje wartości typu 'eq.x'.
     return urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
 
 
@@ -50,6 +61,8 @@ def _do(method, url, headers, body=None):
             return r.status, r.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8", "replace")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Supabase: błąd połączenia: {e.reason}")
 
 
 def _request(method, path, *, params=None, body=None, prefer=None):
