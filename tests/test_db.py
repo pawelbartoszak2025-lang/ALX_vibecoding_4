@@ -67,5 +67,62 @@ class DbHelpersTest(unittest.TestCase):
         db = self._reload()
         self.assertEqual(db._build_query({}), "")
 
+class DbRequestTest(unittest.TestCase):
+    def setUp(self):
+        os.environ["SUPABASE_URL"] = "https://x.supabase.co"
+        os.environ["SUPABASE_KEY"] = "secret"
+        import importlib, db
+        self.db = importlib.reload(db)
+        self.calls = []
+        def fake_do(method, url, headers, body=None):
+            self.calls.append({"method": method, "url": url,
+                               "headers": headers, "body": body})
+            return 200, "[]"
+        self.db._do = fake_do
+
+    def tearDown(self):
+        for k in ("SUPABASE_URL", "SUPABASE_KEY"):
+            os.environ.pop(k, None)
+
+    def test_select_builds_get_with_params(self):
+        self.db.select("discord_sent", columns="url",
+                       filters={"miasto": "eq.Poznań"})
+        c = self.calls[0]
+        self.assertEqual(c["method"], "GET")
+        self.assertTrue(c["url"].startswith(
+            "https://x.supabase.co/rest/v1/discord_sent?"))
+        self.assertIn("select=url", c["url"])
+        self.assertIn("miasto=eq.Pozna", c["url"])
+
+    def test_select_includes_order(self):
+        self.db.select("oferty", order="price.asc.nullslast")
+        self.assertIn("order=price.asc.nullslast", self.calls[0]["url"])
+
+    def test_upsert_sets_prefer_and_on_conflict(self):
+        self.db.upsert("oferty", [{"otodom_id": 1}], on_conflict="otodom_id")
+        c = self.calls[0]
+        self.assertEqual(c["method"], "POST")
+        self.assertIn("on_conflict=otodom_id", c["url"])
+        self.assertEqual(c["headers"]["Prefer"], "resolution=merge-duplicates")
+        import json
+        self.assertEqual(json.loads(c["body"].decode("utf-8")), [{"otodom_id": 1}])
+
+    def test_upsert_ignore_duplicates(self):
+        self.db.upsert("discord_sent", [{"miasto": "a", "url": "u"}],
+                       on_conflict="miasto,url", ignore_duplicates=True)
+        self.assertEqual(self.calls[0]["headers"]["Prefer"],
+                         "resolution=ignore-duplicates")
+
+    def test_upsert_empty_rows_no_call(self):
+        self.db.upsert("oferty", [], on_conflict="otodom_id")
+        self.assertEqual(self.calls, [])
+
+    def test_request_raises_on_http_error(self):
+        self.db._do = lambda *a, **k: (409, "conflict detail")
+        with self.assertRaises(RuntimeError) as ctx:
+            self.db.select("oferty")
+        self.assertIn("409", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
