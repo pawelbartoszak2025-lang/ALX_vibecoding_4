@@ -36,5 +36,52 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(o["rooms"], "2")
         self.assertEqual(o["miasto"], "Poznań")
 
+import store as _store_mod
+
+class StoreSupabaseSettingsTest(unittest.TestCase):
+    def setUp(self):
+        self.rows = []
+        self.upserts = []
+        store_mod = _store_mod
+        self._orig = store_mod.db
+        class FakeDb:
+            @staticmethod
+            def enabled():
+                return True
+            @staticmethod
+            def select(table, columns="*", order=None, filters=None):
+                return list(self.rows)
+            @staticmethod
+            def upsert(table, rows, on_conflict, ignore_duplicates=False):
+                self.upserts.append({"table": table, "rows": rows,
+                                     "on_conflict": on_conflict})
+        store_mod.db = FakeDb
+
+    def tearDown(self):
+        _store_mod.db = self._orig
+
+    def test_get_settings_merges_defaults(self):
+        import json
+        self.rows = [{"value": json.dumps({"interval_min": 30})}]
+        cfg = _store_mod.get_settings("scheduler")
+        self.assertEqual(cfg["interval_min"], 30)
+        self.assertIn("cities", cfg)  # z DEFAULTS
+
+    def test_get_settings_empty_returns_defaults(self):
+        self.rows = []
+        cfg = _store_mod.get_settings("criteria")
+        self.assertEqual(cfg, _store_mod.DEFAULTS["criteria"])
+
+    def test_save_settings_upserts_with_key_conflict(self):
+        import json
+        self._save = _store_mod.save_settings("criteria", {"price_max": 500000})
+        self.assertEqual(len(self.upserts), 1)
+        up = self.upserts[0]
+        self.assertEqual(up["table"], "app_settings")
+        self.assertEqual(up["on_conflict"], "key")
+        row = up["rows"][0]
+        self.assertEqual(row["key"], "criteria")
+        self.assertEqual(json.loads(row["value"])["price_max"], 500000)
+
 if __name__ == "__main__":
     unittest.main()

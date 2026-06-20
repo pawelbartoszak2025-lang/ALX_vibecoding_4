@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Warstwa danych: ustawienia (JSON) oraz oferty w SQLite (otodom.db)."""
 import os, json, sqlite3
+import db
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 # Na Vercelu zapisywać można tylko w /tmp (ulotnie); lokalnie obok skryptu.
@@ -31,10 +32,16 @@ def _con():
 
 
 def get_settings(key):
+    data = dict(DEFAULTS.get(key, {}))
+    if db.enabled():
+        rows = db.select("app_settings", columns="value",
+                         filters={"key": "eq." + key})
+        if rows:
+            data.update(json.loads(rows[0]["value"]))
+        return data
     con = _con()
     row = con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
     con.close()
-    data = dict(DEFAULTS.get(key, {}))
     if row:
         data.update(json.loads(row[0]))
     return data
@@ -43,6 +50,11 @@ def get_settings(key):
 def save_settings(key, data):
     merged = dict(DEFAULTS.get(key, {}))
     merged.update(data or {})
+    if db.enabled():
+        db.upsert("app_settings",
+                  [{"key": key, "value": json.dumps(merged, ensure_ascii=False)}],
+                  on_conflict="key")
+        return merged
     con = _con()
     con.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?,?)",
                 (key, json.dumps(merged, ensure_ascii=False)))
