@@ -268,7 +268,21 @@
 
 <script>
 let OFERTY = [];
-let WOJEWODZTWA = [...new Set(OFERTY.map(o => o.wojewodztwo).filter(Boolean))].sort();
+
+// Stałe miasta obsługiwane przez aplikację (jak w scheduler.py / kryteriach).
+// Dzięki nim listy rozwijane mają co pokazać, gdy baza jest jeszcze pusta
+// (np. świeży Supabase) — inaczej nie dałoby się pobrać pierwszych ofert.
+const SEED_CITY_WOJ = {
+  "Poznań": "wielkopolskie", "Kraków": "małopolskie",
+  "Warszawa": "mazowieckie", "Gdańsk": "pomorskie",
+};
+function computeWojewodztwa(){
+  return [...new Set([
+    ...OFERTY.map(o => o.wojewodztwo).filter(Boolean),
+    ...Object.values(SEED_CITY_WOJ),
+  ])].sort();
+}
+let WOJEWODZTWA = computeWojewodztwa();
 let activeWoj = "Wszystkie";
 let activeCity = "Wszystkie";
 
@@ -277,7 +291,9 @@ const fmt = n => n == null ? null : new Intl.NumberFormat("pl-PL").format(Math.r
 // Miasta dostępne dla wybranego województwa (do filtra miast).
 function citiesForWoj(woj){
   const src = woj === "Wszystkie" ? OFERTY : OFERTY.filter(o => o.wojewodztwo === woj);
-  return [...new Set(src.map(o => o.miasto))].sort();
+  const seed = Object.keys(SEED_CITY_WOJ).filter(c =>
+    woj === "Wszystkie" || SEED_CITY_WOJ[c] === woj);
+  return [...new Set([...src.map(o => o.miasto), ...seed])].sort();
 }
 
 // Liczniki uwzględniają już aktywne filtry "wyżej" w hierarchii.
@@ -311,7 +327,14 @@ document.getElementById("selWoj").addEventListener("change", e => {
   renderChips(); renderGrid();
 });
 document.getElementById("selCity").addEventListener("change", e => {
-  activeCity = e.target.value; renderGrid();
+  activeCity = e.target.value;
+  // Gdy wybrano znane miasto bez wybranego województwa — dobierz województwo,
+  // żeby zapytanie do Otodom miało komplet (województwo + miasto).
+  if (activeCity !== "Wszystkie" && activeWoj === "Wszystkie" && SEED_CITY_WOJ[activeCity]){
+    activeWoj = SEED_CITY_WOJ[activeCity];
+    renderChips();
+  }
+  renderGrid();
 });
 
 // ── pobieranie 10 najnowszych ofert z Otodom (przez lokalny serwer) ──
@@ -503,8 +526,9 @@ document.getElementById("btnLogout").addEventListener("click", async () => {
 });
 
 async function loadOffers(){
-  OFERTY = await (await fetch("/api/offers")).json();
-  WOJEWODZTWA = [...new Set(OFERTY.map(o => o.wojewodztwo).filter(Boolean))].sort();
+  const data = await (await fetch("/api/offers")).json();
+  OFERTY = Array.isArray(data) ? data : [];   // błąd API nie może wywalić strony
+  WOJEWODZTWA = computeWojewodztwa();
   renderChips(); renderGrid();
 }
 
