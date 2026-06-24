@@ -41,3 +41,18 @@ def chunk_ranges(start, end, max_days=MAX_DAYS):
 def batches(seq, size):
     for i in range(0, len(seq), size):
         yield seq[i:i + size]
+
+
+def parse_tables(tables):
+    """Lista dni z NBP -> lista wierszy {kod, waluta, data, kurs}."""
+    rows = []
+    for t in tables:
+        data = t.get("effectiveDate")
+        for r in t.get("rates", []):
+            rows.append({
+                "kod": r.get("code"),
+                "waluta": r.get("currency"),
+                "data": data,
+                "kurs": r.get("mid"),
+            })
+    return rows

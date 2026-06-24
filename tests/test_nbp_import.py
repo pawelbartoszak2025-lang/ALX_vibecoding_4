@@ -38,5 +38,38 @@ class DateHelpersTest(unittest.TestCase):
         self.assertEqual(list(nbp.batches([], 2)), [])
 
 
+class ParseTablesTest(unittest.TestCase):
+    SAMPLE = [
+        {
+            "table": "A",
+            "no": "120/A/NBP/2026",
+            "effectiveDate": "2026-06-23",
+            "rates": [
+                {"currency": "dolar amerykański", "code": "USD", "mid": 4.0150},
+                {"currency": "euro", "code": "EUR", "mid": 4.2500},
+            ],
+        },
+        {
+            "table": "A",
+            "no": "121/A/NBP/2026",
+            "effectiveDate": "2026-06-24",
+            "rates": [
+                {"currency": "dolar amerykański", "code": "USD", "mid": 4.0200},
+            ],
+        },
+    ]
+
+    def test_parse_tables_flattens_rows(self):
+        rows = nbp.parse_tables(self.SAMPLE)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0], {"kod": "USD", "waluta": "dolar amerykański",
+                                   "data": "2026-06-23", "kurs": 4.0150})
+        self.assertEqual(rows[2], {"kod": "USD", "waluta": "dolar amerykański",
+                                   "data": "2026-06-24", "kurs": 4.0200})
+
+    def test_parse_tables_empty(self):
+        self.assertEqual(nbp.parse_tables([]), [])
+
+
 if __name__ == "__main__":
     unittest.main()
