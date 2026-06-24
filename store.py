@@ -132,3 +132,20 @@ def read_offers():
         FROM oferty ORDER BY miasto_wyszukiwania, price IS NULL, price""").fetchall()
     con.close()
     return [_row_to_offer(r) for r in rows]
+
+
+def read_latest_rates(codes):
+    """Najnowszy kurs (PLN za 1 jednostkę) dla podanych kodów walut z tabeli
+    kursy_walut. Zwraca {kod: kurs}. Bez Supabase (lokalny SQLite) → {}."""
+    codes = list(codes or [])
+    if not codes or not db.enabled():
+        return {}
+    rows = db.select("kursy_walut", columns="kod,kurs,data",
+                     filters={"kod": "in.(" + ",".join(codes) + ")"},
+                     order="data.desc")
+    latest = {}
+    for r in rows:
+        kod = r["kod"]
+        if kod not in latest:        # rows malejąco po dacie → pierwszy = najnowszy
+            latest[kod] = _num(r["kurs"])
+    return latest
