@@ -1,6 +1,7 @@
 # tests/test_nbp_import.py
 # -*- coding: utf-8 -*-
 import unittest
+import json
 from datetime import date, timedelta
 import nbp_import as nbp
 
@@ -69,6 +70,40 @@ class ParseTablesTest(unittest.TestCase):
 
     def test_parse_tables_empty(self):
         self.assertEqual(nbp.parse_tables([]), [])
+
+
+class FetchTableTest(unittest.TestCase):
+    def setUp(self):
+        self._orig_get = nbp._get
+        self.calls = []
+
+    def tearDown(self):
+        nbp._get = self._orig_get
+
+    def test_fetch_table_builds_url_and_parses(self):
+        sample = json.dumps([
+            {"effectiveDate": "2026-06-23",
+             "rates": [{"currency": "euro", "code": "EUR", "mid": 4.25}]},
+        ])
+        def fake_get(url):
+            self.calls.append(url)
+            return 200, sample
+        nbp._get = fake_get
+        rows = nbp.fetch_table("A", "2026-06-01", "2026-06-23")
+        self.assertEqual(self.calls[0],
+            "https://api.nbp.pl/api/exchangerates/tables/A/2026-06-01/2026-06-23/?format=json")
+        self.assertEqual(rows, [{"kod": "EUR", "waluta": "euro",
+                                 "data": "2026-06-23", "kurs": 4.25}])
+
+    def test_fetch_table_404_returns_empty(self):
+        nbp._get = lambda url: (404, "404 NotFound - Not Found")
+        self.assertEqual(nbp.fetch_table("B", "2024-12-25", "2024-12-26"), [])
+
+    def test_fetch_table_raises_on_other_error(self):
+        nbp._get = lambda url: (500, "server error")
+        with self.assertRaises(RuntimeError) as ctx:
+            nbp.fetch_table("A", "2026-06-01", "2026-06-23")
+        self.assertIn("500", str(ctx.exception))
 
 
 if __name__ == "__main__":

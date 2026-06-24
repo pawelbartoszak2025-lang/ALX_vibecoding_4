@@ -56,3 +56,26 @@ def parse_tables(tables):
                 "kurs": r.get("mid"),
             })
     return rows
+
+
+def _get(url):
+    """Jedyne miejsce realnego I/O sieciowego — podmieniane w testach."""
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status, r.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode("utf-8", "replace")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"NBP: błąd połączenia: {e.reason}")
+
+
+def fetch_table(letter, start, end):
+    """Pobiera tabelę letter (A/B) dla zakresu dat; 404 = brak danych -> []."""
+    url = f"{NBP_BASE}/{letter}/{start}/{end}/?format=json"
+    status, text = _get(url)
+    if status == 404:
+        return []
+    if status >= 400:
+        raise RuntimeError(f"NBP {letter} {start}..{end}: {status}: {text}")
+    return parse_tables(json.loads(text))
