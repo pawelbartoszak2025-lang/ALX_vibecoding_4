@@ -79,3 +79,34 @@ def fetch_table(letter, start, end):
     if status >= 400:
         raise RuntimeError(f"NBP {letter} {start}..{end}: {status}: {text}")
     return parse_tables(json.loads(text))
+
+
+def run(today=None):
+    """Pobiera kursy A i B za ostatnie MONTHS miesięcy i zapisuje do Supabase.
+    Zwraca łączną liczbę zapisanych wierszy."""
+    if not db.enabled():
+        print("Brak konfiguracji Supabase. Ustaw zmienne SUPABASE_URL i "
+              "SUPABASE_KEY (te same, których używa aplikacja) i spróbuj ponownie.")
+        return 0
+
+    today = today or date.today()
+    start = months_back(today, MONTHS)
+    chunks = chunk_ranges(start, today)
+    print(f"Pobieram kursy od {start.isoformat()} do {today.isoformat()} "
+          f"({len(chunks)} zakres(y)).")
+
+    total = 0
+    for s, e in chunks:
+        for letter in ("A", "B"):
+            rows = fetch_table(letter, s.isoformat(), e.isoformat())
+            for batch in batches(rows, BATCH):
+                db.upsert("kursy_walut", batch, on_conflict="kod,data")
+            total += len(rows)
+            print(f"  Tabela {letter} {s.isoformat()}..{e.isoformat()}: "
+                  f"{len(rows)} kursów.")
+    print(f"Gotowe. Zapisano łącznie {total} kursów do tabeli kursy_walut.")
+    return total
+
+
+if __name__ == "__main__":
+    run()

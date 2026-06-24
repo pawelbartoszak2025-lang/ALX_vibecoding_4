@@ -106,5 +106,39 @@ class FetchTableTest(unittest.TestCase):
         self.assertIn("500", str(ctx.exception))
 
 
+class RunTest(unittest.TestCase):
+    def setUp(self):
+        self._orig = (nbp.fetch_table, nbp.db.enabled, nbp.db.upsert)
+        self.upserts = []
+
+    def tearDown(self):
+        nbp.fetch_table, nbp.db.enabled, nbp.db.upsert = self._orig
+
+    def test_run_aborts_when_db_disabled(self):
+        nbp.db.enabled = lambda: False
+        called = []
+        nbp.fetch_table = lambda *a, **k: called.append(a) or []
+        self.assertEqual(nbp.run(today=date(2026, 6, 24)), 0)
+        self.assertEqual(called, [])  # nie sięga do sieci
+
+    def test_run_fetches_chunks_and_upserts(self):
+        nbp.db.enabled = lambda: True
+        def fake_fetch(letter, start, end):
+            return [{"kod": "EUR", "waluta": "euro", "data": end, "kurs": 4.25}]
+        nbp.fetch_table = fake_fetch
+        def fake_upsert(table, rows, on_conflict):
+            self.upserts.append((table, list(rows), on_conflict))
+        nbp.db.upsert = fake_upsert
+
+        total = nbp.run(today=date(2026, 6, 24))
+
+        # 2 kawałki (18 mies. > 367 dni) x 2 tabele (A, B) = 4 wiersze
+        self.assertEqual(total, 4)
+        self.assertTrue(self.upserts)
+        for table, rows, on_conflict in self.upserts:
+            self.assertEqual(table, "kursy_walut")
+            self.assertEqual(on_conflict, "kod,data")
+
+
 if __name__ == "__main__":
     unittest.main()
