@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oferty mieszkań — Otodom</title>
 <script src="/criteria.js"></script>
+<script src="/currency.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -229,6 +230,11 @@
   <button id="btnDiscord" class="btn-discord" type="button">Wyślij na Discord</button>
   <button id="btnAll" class="btn-scrape" type="button">Pokaż wszystkie</button>
   <button id="btnLogout" class="btn-discord" type="button" style="background:#5d6a38;border-color:#46532b">Wyloguj</button>
+  <div class="fdiv"></div>
+  <span class="fgroup" style="display:flex;gap:6px;align-items:center">
+    <span class="flabel">Waluta</span>
+    <span id="currencyButtons" style="display:flex;gap:4px"></span>
+  </span>
   <span id="scrapeStatus" class="scrape-status" role="status"></span>
 </div></nav>
 <section id="panels" style="padding:14px var(--pad);display:grid;gap:18px;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)">
@@ -287,6 +293,53 @@ let activeWoj = "Wszystkie";
 let activeCity = "Wszystkie";
 
 const fmt = n => n == null ? null : new Intl.NumberFormat("pl-PL").format(Math.round(n));
+
+const CURRENCIES = ["PLN", "USD", "EUR", "GBP"];
+let RATES = {};                 // {USD: 3.78, ...} — puste gdy kursy niedostępne
+let activeCurrency = "PLN";
+
+// Kwoty do wyświetlenia dla danej oferty wg aktywnej waluty.
+function priceParts(o){
+  if (activeCurrency === "PLN" || !RATES[activeCurrency]){
+    return { main: fmt(o.price), cur: o.currency,
+             ppm: o.ppm != null ? fmt(o.ppm) : null };
+  }
+  const rate = RATES[activeCurrency];
+  return { main: formatMoney(convertAmount(o.price, rate)), cur: activeCurrency,
+           ppm: o.ppm != null ? formatMoney(convertAmount(o.ppm, rate)) : null };
+}
+
+function renderCurrencySwitch(){
+  const box = document.getElementById("currencyButtons");
+  box.innerHTML = CURRENCIES.map(c => {
+    const avail = c === "PLN" || RATES[c] != null;
+    const on = c === activeCurrency;
+    const style = "padding:3px 8px;border:1px solid var(--line);border-radius:6px;"
+      + "cursor:" + (avail ? "pointer" : "not-allowed") + ";"
+      + (on ? "background:var(--ink);color:#fff;" : "background:#fff;")
+      + (avail ? "" : "opacity:.4;");
+    const title = avail ? "" : ' title="kurs niedostępny"';
+    return `<button type="button" class="cur-btn" data-cur="${c}"${avail?"":" disabled"}`
+      + `${title} style="${style}">${c}</button>`;
+  }).join("");
+  box.querySelectorAll(".cur-btn").forEach(b => b.addEventListener("click", () => {
+    activeCurrency = b.dataset.cur;
+    try { localStorage.setItem("oferty_waluta", activeCurrency); } catch (e) {}
+    renderCurrencySwitch(); renderGrid();
+  }));
+}
+
+async function loadRates(){
+  try {
+    const r = await fetch("/api/rates");
+    RATES = r.ok ? await r.json() : {};
+  } catch (e) { RATES = {}; }      // błąd kursów nie może wywalić strony
+  let saved = "PLN";
+  try { saved = localStorage.getItem("oferty_waluta") || "PLN"; } catch (e) {}
+  activeCurrency = (saved === "PLN" || RATES[saved] != null) ? saved : "PLN";
+  renderCurrencySwitch();
+  renderGrid();
+}
 
 // Miasta dostępne dla wybranego województwa (do filtra miast).
 function citiesForWoj(woj){
@@ -426,10 +479,11 @@ function card(o, i){
     o.area  ? `<div class="spec"><span class="spec-val">${(""+o.area).replace(".",",")}</span><span class="spec-lab">m²</span></div>` : "",
     o.rooms ? `<div class="spec"><span class="spec-val">${o.rooms}</span><span class="spec-lab">${roomLabel(o.rooms)}</span></div>` : "",
   ].filter(Boolean).join("");
+  const pp = priceParts(o);
   const price = inv
     ? `<div class="price-main price-inv">Inwestycja</div>`
-    : `<div class="price-main">${fmt(o.price)}<span class="price-cur">${o.currency}</span></div>` +
-      (o.ppm ? `<div class="price-ppm">${fmt(o.ppm)} ${o.currency}/m²</div>` : "");
+    : `<div class="price-main">${pp.main}<span class="price-cur">${pp.cur}</span></div>` +
+      (pp.ppm ? `<div class="price-ppm">${pp.ppm} ${pp.cur}/m²</div>` : "");
   return `<a class="row" style="--i:${i}" href="${o.url}" target="_blank" rel="noopener">
       <span class="row-index">${idx}</span>
       <div class="row-body">
@@ -536,6 +590,7 @@ async function loadOffers(){
   await loadCriteria();
   await loadScheduler();
   await loadOffers();
+  await loadRates();
 })();
 
 // Strona otwarta z pliku (dwuklik) nie ma serwera -> pobieranie nie zadziała.

@@ -36,6 +36,9 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(o["rooms"], "2")
         self.assertEqual(o["miasto"], "Poznań")
 
+    def test_read_latest_rates_empty_without_supabase(self):
+        self.assertEqual(store.read_latest_rates(["USD", "EUR"]), {})
+
 import store as _store_mod
 
 class StoreSupabaseSettingsTest(unittest.TestCase):
@@ -145,6 +148,42 @@ class StoreSupabaseOffersTest(unittest.TestCase):
         self.assertIsInstance(out[0]["price"], float)
         self.assertEqual(out[0]["ppm"], 5.0)
         self.assertEqual(out[0]["area"], 20.0)
+
+class StoreLatestRatesTest(unittest.TestCase):
+    def setUp(self):
+        _store_mod.DB = os.path.join(tempfile.mkdtemp(), "t.db")
+        self.rows = []
+        self._orig = _store_mod.db
+        outer = self
+        class FakeDb:
+            @staticmethod
+            def enabled():
+                return True
+            @staticmethod
+            def select(table, columns="*", order=None, filters=None):
+                outer.last = {"table": table, "columns": columns,
+                              "order": order, "filters": filters}
+                return list(outer.rows)
+        _store_mod.db = FakeDb
+
+    def tearDown(self):
+        _store_mod.db = self._orig
+
+    def test_picks_latest_date_per_code_and_coerces_float(self):
+        # PostgREST zwraca numeric jako tekst; daty malejąco (order data.desc)
+        self.rows = [
+            {"kod": "USD", "kurs": "3.80", "data": "2026-06-24"},
+            {"kod": "EUR", "kurs": "4.25", "data": "2026-06-24"},
+            {"kod": "USD", "kurs": "3.70", "data": "2026-06-23"},
+        ]
+        out = _store_mod.read_latest_rates(["USD", "EUR"])
+        self.assertEqual(out, {"USD": 3.80, "EUR": 4.25})
+        self.assertIsInstance(out["USD"], float)
+        self.assertEqual(self.last["order"], "data.desc")
+        self.assertEqual(self.last["filters"], {"kod": "in.(USD,EUR)"})
+
+    def test_empty_codes_returns_empty(self):
+        self.assertEqual(_store_mod.read_latest_rates([]), {})
 
 if __name__ == "__main__":
     unittest.main()
