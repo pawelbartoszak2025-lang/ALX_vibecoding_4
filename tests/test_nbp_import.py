@@ -152,8 +152,10 @@ class RunTest(unittest.TestCase):
 
         total = nbp.run(today=date(2026, 6, 24))
 
-        # 2 kawałki (18 mies. > 367 dni) x 2 tabele (A, B) = 4 wiersze
-        self.assertEqual(total, 4)
+        # liczba kawałków x 2 tabele (A, B); każde wywołanie zwraca 1 wiersz
+        n_chunks = len(nbp.chunk_ranges(
+            nbp.months_back(date(2026, 6, 24), nbp.MONTHS), date(2026, 6, 24)))
+        self.assertEqual(total, n_chunks * 2)
         self.assertTrue(self.upserts)
         for table, rows, on_conflict in self.upserts:
             self.assertEqual(table, "kursy_walut")
@@ -170,8 +172,10 @@ class RunTest(unittest.TestCase):
         nbp.fetch_table = flaky_fetch
         nbp.db.upsert = lambda *a, **k: None
         total = nbp.run(today=date(2026, 6, 24))
-        # 4 wywołania (2 kawałki x A,B); 1 padło -> 3 udane wiersze
-        self.assertEqual(total, 3)
+        # wszystkie wywołania (kawałki x A,B) minus 1, które padło
+        n_chunks = len(nbp.chunk_ranges(
+            nbp.months_back(date(2026, 6, 24), nbp.MONTHS), date(2026, 6, 24)))
+        self.assertEqual(total, n_chunks * 2 - 1)
 
 
 if __name__ == "__main__":

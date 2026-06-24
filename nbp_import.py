@@ -14,7 +14,7 @@ from datetime import date, timedelta
 import db
 
 NBP_BASE = "https://api.nbp.pl/api/exchangerates/tables"
-MAX_DAYS = 367          # limit NBP na jedno zapytanie o zakres
+MAX_DAYS = 90           # limit NBP dla tabel A/B to 93 dni na zapytanie; 90 z zapasem
 MONTHS = 18             # ile miesięcy wstecz
 BATCH = 500             # ile wierszy na jedną wysyłkę do Supabase
 

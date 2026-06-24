@@ -44,9 +44,9 @@ Nowa tabela `kursy_walut`:
 Przebieg:
 
 1. **Zakres dat** — `dziś` oraz `dziś − 18 miesięcy`.
-2. **Podział na kawałki** — NBP pozwala na maks. ~367 dni na jedno zapytanie
-   o zakres; 18 miesięcy (~548 dni) dzielone jest na kolejne podzakresy
-   ≤ 367 dni.
+2. **Podział na kawałki** — dla tabel A/B NBP pozwala na maks. 93 dni na jedno
+   zapytanie o zakres; 18 miesięcy (~548 dni) dzielone jest na kolejne
+   podzakresy ≤ 90 dni (z zapasem względem limitu 93).
 3. **Pobranie** — dla każdego kawałka osobno tabela A i tabela B:
    `https://api.nbp.pl/api/exchangerates/tables/{A|B}/{start}/{end}/?format=json`
 4. **Przetworzenie** — z odpowiedzi (lista dni, każdy z `effectiveDate` i listą
