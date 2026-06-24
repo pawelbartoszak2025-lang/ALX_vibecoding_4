@@ -213,6 +213,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/criteria.js":
             self._serve_file("criteria.js", "application/javascript; charset=utf-8")
             return
+        if path == "/currency.js":
+            self._serve_file("currency.js", "application/javascript; charset=utf-8")
+            return
         if path in ("/", "/oferty.html"):
             if not user:
                 self.send_response(302)
@@ -234,6 +237,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/offers":
                 self._send(200, json.dumps(store.read_offers(), ensure_ascii=False))
+                return
+            if path == "/api/rates":
+                rates = store.read_latest_rates(["USD", "EUR", "GBP"])
+                self._send(200, json.dumps(rates, ensure_ascii=False))
                 return
             if path == "/api/criteria":
                 self._send(200, json.dumps(store.get_settings("criteria"), ensure_ascii=False))
