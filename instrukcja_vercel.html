@@ -265,6 +265,39 @@ git push -u origin master</pre>
   Vercela — nigdy nie wklejaj go do kodu ani nie wysyłaj na GitHub.</div>
 </section>
 
+<section id="nbp">
+  <h2><span class="num">04c</span>Import kursów walut NBP (kursy_walut)</h2>
+  <p>Jeśli chcesz mieć w bazie Supabase historyczne kursy walut pobrane z Narodowego Banku Polskiego,
+  uruchom jednorazowy skrypt <code>nbp_import.py</code>. Poniżej krok po kroku.</p>
+
+  <ol class="flow">
+    <li>
+      <h3>Utwórz tabelę w Supabase</h3>
+      <p>W panelu Supabase otwórz <b>SQL Editor → New query</b>,
+      wklej całość pliku <code>supabase_schema.sql</code> i kliknij
+      <b>Run</b>. Powstanie m.in. tabela <code>kursy_walut</code>
+      (jeśli już raz uruchamiałeś ten plik, nic złego się nie stanie —
+      tabele tworzone są tylko, gdy ich nie ma).</p>
+    </li>
+    <li>
+      <h3>Ustaw zmienne środowiskowe</h3>
+      <p>Na komputerze ustaw zmienne <code>SUPABASE_URL</code> i
+      <code>SUPABASE_KEY</code> (te same, co dla aplikacji).</p>
+    </li>
+    <li>
+      <h3>Uruchom skrypt</h3>
+      <p>Uruchom: <code>python nbp_import.py</code>. Skrypt pobierze kursy
+      wszystkich walut (tabele A i B) za ostatnie 18 miesięcy i zapisze je
+      do tabeli <code>kursy_walut</code>, pokazując postęp.</p>
+    </li>
+    <li>
+      <h3>Powtarzanie jest bezpieczne</h3>
+      <p>Skrypt można uruchomić ponownie — istniejące kursy zostaną nadpisane,
+      bez duplikatów.</p>
+    </li>
+  </ol>
+</section>
+
 <section id="deploy">
   <h2><span class="num">05</span>Krok 4 — opublikuj <span class="badge ok">finał</span></h2>
   <ol class="flow">
