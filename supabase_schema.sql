@@ -30,9 +30,18 @@ create table if not exists discord_sent (
     unique (miasto, url)
 );
 
+create table if not exists kursy_walut (
+    kod    text,
+    waluta text,
+    data   date,
+    kurs   numeric,
+    unique (kod, data)
+);
+
 -- Bezpieczeństwo: włącz RLS na wszystkich tabelach. Aplikacja łączy się kluczem
 -- service_role (po stronie serwera), który RLS omija, więc działa normalnie.
 -- Brak policy = publiczny klucz anon nie ma dostępu do tych tabel.
 alter table oferty       enable row level security;
 alter table app_settings enable row level security;
 alter table discord_sent enable row level security;
+alter table kursy_walut  enable row level security;
