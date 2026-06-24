@@ -24,6 +24,9 @@ Data: 2026-06-16
   wysyłki na Discord); pokazuje czas ostatniego cyklu i ewentualny błąd.
 - Oferty na stronie pochodzą teraz **z bazy** (`GET /api/offers`) — harmonogram
   i ręczne „Pobierz" zapisują do bazy, strona czyta z bazy.
+- **Import kursów walut NBP** (`nbp_import.py`): jednorazowe pobranie średnich
+  kursów wszystkich walut (tabele A + B) za ostatnie 18 miesięcy do tabeli
+  Supabase `kursy_walut`. Uruchamiane lokalnie: `python nbp_import.py`.
 
 ## 🧪 Testy
 - `python -m unittest discover -s tests -v` — 31 testów (store, auth, scheduler, db, store-supabase, discord).
