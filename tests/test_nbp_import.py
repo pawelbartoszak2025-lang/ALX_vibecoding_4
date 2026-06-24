@@ -106,6 +106,26 @@ class FetchTableTest(unittest.TestCase):
         self.assertIn("500", str(ctx.exception))
 
 
+class DedupeRowsTest(unittest.TestCase):
+    def test_dedupe_keeps_last_on_duplicate_key(self):
+        rows = [
+            {"kod": "USD", "waluta": "dolar", "data": "2026-06-23", "kurs": 4.0},
+            {"kod": "USD", "waluta": "dolar", "data": "2026-06-23", "kurs": 4.1},
+        ]
+        out = nbp.dedupe_rows(rows)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["kurs"], 4.1)
+
+    def test_dedupe_keeps_distinct_keys(self):
+        rows = [
+            {"kod": "USD", "waluta": "dolar", "data": "2026-06-23", "kurs": 4.0},
+            {"kod": "EUR", "waluta": "euro", "data": "2026-06-23", "kurs": 4.25},
+            {"kod": "USD", "waluta": "dolar", "data": "2026-06-24", "kurs": 4.02},
+        ]
+        out = nbp.dedupe_rows(rows)
+        self.assertEqual(len(out), 3)
+
+
 class RunTest(unittest.TestCase):
     def setUp(self):
         self._orig = (nbp.fetch_table, nbp.db.enabled, nbp.db.upsert)
@@ -138,6 +158,20 @@ class RunTest(unittest.TestCase):
         for table, rows, on_conflict in self.upserts:
             self.assertEqual(table, "kursy_walut")
             self.assertEqual(on_conflict, "kod,data")
+
+    def test_run_continues_on_fetch_error(self):
+        nbp.db.enabled = lambda: True
+        calls = {"n": 0}
+        def flaky_fetch(letter, start, end):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("NBP 500")
+            return [{"kod": "EUR", "waluta": "euro", "data": end, "kurs": 4.25}]
+        nbp.fetch_table = flaky_fetch
+        nbp.db.upsert = lambda *a, **k: None
+        total = nbp.run(today=date(2026, 6, 24))
+        # 4 wywołania (2 kawałki x A,B); 1 padło -> 3 udane wiersze
+        self.assertEqual(total, 3)
 
 
 if __name__ == "__main__":

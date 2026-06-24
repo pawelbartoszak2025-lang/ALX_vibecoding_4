@@ -58,6 +58,15 @@ def parse_tables(tables):
     return rows
 
 
+def dedupe_rows(rows):
+    """Usuwa duplikaty po (kod, data) — ostatni wygrywa. Zabezpiecza przed
+    odrzuceniem partii przez Supabase przy powtórzonym kluczu (kod, data)."""
+    seen = {}
+    for r in rows:
+        seen[(r["kod"], r["data"])] = r
+    return list(seen.values())
+
+
 def _get(url):
     """Jedyne miejsce realnego I/O sieciowego — podmieniane w testach."""
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
@@ -96,14 +105,23 @@ def run(today=None):
           f"({len(chunks)} zakres(y)).")
 
     total = 0
+    failures = 0
     for s, e in chunks:
         for letter in ("A", "B"):
-            rows = fetch_table(letter, s.isoformat(), e.isoformat())
-            for batch in batches(rows, BATCH):
-                db.upsert("kursy_walut", batch, on_conflict="kod,data")
-            total += len(rows)
-            print(f"  Tabela {letter} {s.isoformat()}..{e.isoformat()}: "
-                  f"{len(rows)} kursów.")
+            try:
+                rows = dedupe_rows(fetch_table(letter, s.isoformat(), e.isoformat()))
+                for batch in batches(rows, BATCH):
+                    db.upsert("kursy_walut", batch, on_conflict="kod,data")
+                total += len(rows)
+                print(f"  Tabela {letter} {s.isoformat()}..{e.isoformat()}: "
+                      f"{len(rows)} kursów.")
+            except Exception as ex:
+                failures += 1
+                print(f"  BŁĄD: tabela {letter} {s.isoformat()}..{e.isoformat()}: "
+                      f"{ex}. Pomijam ten fragment i kontynuuję.")
+    if failures:
+        print(f"Uwaga: {failures} fragment(ów) nie pobrano — uruchom skrypt "
+              f"ponownie, aby je uzupełnić (duplikaty nie powstaną).")
     print(f"Gotowe. Zapisano łącznie {total} kursów do tabeli kursy_walut.")
     return total
 
